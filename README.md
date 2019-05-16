@@ -54,14 +54,14 @@ This code shurten links.
 - params:
   * method = "get_click"
   * password = "{Creator verification}"
-  * link  = "{the link}"
+  * link  = "{the shorten link}"
 
 - Example
 
        params = {
 		    "method" : "get_click",
             "password": "12345678",
-            "link": "https://www.google.com"
+            "link": "http://y-link.ml/LinkID"
 		}
 
 ### edit_link
@@ -157,7 +157,7 @@ print(make_requests(method='create', password=1234, link='www.google.com'))
 
 ```
 - return
-```json
+```
 {
     'ok': True,
     'res': {
