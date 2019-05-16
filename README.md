@@ -1,5 +1,5 @@
 # Y-link
-*[The site](http://y-link.ml)*
+## [Website](http://y-link.ml)
 
 This code shurten links.
 
@@ -43,10 +43,10 @@ This code shurten links.
 - Example:
 
        params = {
-		    "method" : "create",
+        "method" : "create",
             "password": "12345678",
             "link": "https://www.google.com"
-		}
+    }
   
 ### get_click
 **get num of clicks.**
@@ -59,16 +59,16 @@ This code shurten links.
 - Example
 
        params = {
-		    "method" : "get_click",
+        "method" : "get_click",
             "password": "12345678",
             "link": "http://y-link.ml/LinkID"
-		}
+    }
 
 ### edit_link
 **edit link...**
 
 - params:
-  * method = "get_click"
+  * method = "edit_link"
   * password = "{Creator verification}"
   * shorten_link = "the shorten link"
   * link  = "{the new link}"
@@ -76,11 +76,11 @@ This code shurten links.
 - Example
 
        params = {
-		    "method" : "get_click",
+        "method" : "edit_link",
             "password": "12345678",
             "shorten_link": "http://y-link.ml/LinkID",
             "link": "https://www.google.com"
-		}
+    }
 
 ### custom
 **create custom shurten link**
@@ -95,12 +95,12 @@ This code shurten links.
 - Example
 
        params = {
-		    "method" : "get_click",
+        "method" : "custom",
             "password": "12345678",
             "token": "ABC123",
             "path": "custom"
             "link": "https://www.google.com"
-		}
+    }
 
 ### help
 **get help**
@@ -111,8 +111,8 @@ This code shurten links.
 - Example
 
        params = {
-		    "method" : "help"
-		}
+        "method" : "help"
+    }
 
 ## Types
 
@@ -121,7 +121,7 @@ This code shurten links.
     - description -"The method.."
 
 * `password`
-     - type	- "string (Up to 20)"
+     - type  - "string (Up to 20)"
      - description - "creator id - to get num of clicks / edit the link"
 
 * `link`
@@ -137,8 +137,30 @@ This code shurten links.
     - description - "api output shorten link"
 
 
-# Code example
-##python
+# Code example  
+
+## command line
+```bash
+$ curl 'http://y-link.ml/api.php?method=create&password=123&link=google.com
+```
+
+## php
+```php
+echo file_get_contents("http://y-link.ml/api.php?method=create&password=123&link=google.com");
+```
+**- return**
+```
+ {
+     'ok': True,
+     'res': {
+         'password': '123', 
+         'link': 'http://y-link.ml/rGUye3'
+     }
+ }
+```
+
+
+## python
 
 ```python
 import requests
@@ -156,13 +178,13 @@ def make_requests(method, password, link):
 print(make_requests(method='create', password=1234, link='www.google.com'))
 
 ```
-- return
-```
-{
-    'ok': True,
-    'res': {
-        'password': '1234', 
-        'link': 'http://y-link.ml/rGUye3'
-    }
-}
+**- return**
+```python
+ {
+     'ok': True,
+     'res': {
+         'password': '1234', 
+         'link': 'http://y-link.ml/rGUye3'
+     }
+ }
 ```
