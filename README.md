@@ -27,7 +27,7 @@ This code shurten links.
         * create shortened link
         * edit shortened link
         * get num of clicks of the shortened links
-        * create custom made shortened links
+        * create custom shortened links
         * receive help
 
 ## API methods
@@ -83,7 +83,7 @@ This code shurten links.
       }
 
 ### custom
-**create custom made shortened links**
+**create custom shortened links**
 
 - params:
   * method = "custom"
