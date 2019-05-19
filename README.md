@@ -4,16 +4,16 @@
 This code shurten links.
 
 ### the files:
-* bot.php - create shurten link in telegram ([the bot](https://t.me/YLINKBot)) 
-    * shurten link and get count clicks of link.
+* bot.php - create shortened links in telegram ([the bot](https://t.me/YLINKBot)) 
+    * shorten link and get count of clicks of the link.
     * work in inline!
     * config:
         * set token in func curlPost
         * set webHook (https://api.telegram.org/bot^Token^/setwebhook?url=YOUR-DOMAIN.COM/bot.php)
-* index.php - create shurten link in the site
-* link.php  - d'ont tach.
-* .htaccess - d'ont tach.
-* table.sql - config the DB (import to exist db)
+* index.php - create shortened links on the web
+* link.php  - don't touch.
+* .htaccess - don't touch.
+* table.sql - config the DB (import to an existing db)
 * **api.php** - api...
     * config:
         * in the func LinkTool, set:
@@ -24,11 +24,11 @@ This code shurten links.
         * change ^y-link.ml^ to your domain
         * set tokens in line 132 (Optional) 
     * The api options:
-        * create shurten link
-        * edit shurten link
-        * get clicks of shurten link
-        * create custom shurten link
-        * get help
+        * create shortened link
+        * edit shortened link
+        * get num of clicks of the shortened links
+        * create custom made shortened links
+        * receive help
 
 ## API methods
 
@@ -46,7 +46,7 @@ This code shurten links.
         "method" : "create",
             "password": "12345678",
             "link": "https://www.google.com"
-    }
+      }
   
 ### get_click
 **get num of clicks.**
@@ -62,7 +62,7 @@ This code shurten links.
         "method" : "get_click",
             "password": "12345678",
             "link": "http://y-link.ml/LinkID"
-    }
+      }
 
 ### edit_link
 **edit link...**
@@ -70,7 +70,7 @@ This code shurten links.
 - params:
   * method = "edit_link"
   * password = "{Creator verification}"
-  * shorten_link = "the shorten link"
+  * shorten_link = "the shortened link"
   * link  = "{the new link}"
 
 - Example
@@ -80,10 +80,10 @@ This code shurten links.
             "password": "12345678",
             "shorten_link": "http://y-link.ml/LinkID",
             "link": "https://www.google.com"
-    }
+      }
 
 ### custom
-**create custom shurten link**
+**create custom made shortened links**
 
 - params:
   * method = "custom"
@@ -100,10 +100,10 @@ This code shurten links.
             "token": "ABC123",
             "path": "custom"
             "link": "https://www.google.com"
-    }
+      }
 
 ### help
-**get help**
+**receive help**
 
 - params:
   * method = "help"
@@ -112,7 +112,7 @@ This code shurten links.
 
        params = {
         "method" : "help"
-    }
+      }
 
 ## Types
 
@@ -130,11 +130,11 @@ This code shurten links.
 
 * `path` 
     - type - "string (Up to 20)"
-    - description - "shorten link path: y-link.ml/path"
+    - description - "shortened link path: y-link.ml/path"
 
 * `shorten_link`
     - type - "y-link.ml link (string)"
-    - description - "api output shorten link"
+    - description - "api output shortened link"
 
 
 # Code example  
