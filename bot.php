@@ -11,7 +11,7 @@ if($update == NULL){
     exit();
 }
 
-$rm = json_encode(array('inline_keyboard' => array(array(array('text' => 'ממלכת הרובוטים הישראלית', 'url' => "t.me/IL_BOTS/98")),array(array('text' => 'ליוצר הבוט', 'url' => "y-link.ml/Mail")))));
+$rm = json_encode(array('inline_keyboard' => array(array(array('text' => 'לתרומות', 'url' => "http://y-link.ml/donate")),array(array('text' => 'ליוצר הבוט', 'url' => "y-link.ml/Mail")))));
 $markup = array('inline_keyboard' => array(array(array('text' => 'מעבר לרובוט', 'url' => "t.me/YLinkbot"))));
 
 function curlPost($method,$datas=[]==NULL){
@@ -53,6 +53,22 @@ $PostData = array(
 $res = curlPost('answerInlineQuery',$PostData);
 return $res;
 }
+function validLink($link, $type = false){
+    if($type){
+        if(!(parse_url($link, PHP_URL_SCHEME) && parse_url($link, PHP_URL_HOST)) && !(parse_url("http://".$link, PHP_URL_SCHEME) && parse_url("http://".$link, PHP_URL_HOST)))
+            return false;
+        if(parse_url($link, PHP_URL_SCHEME) && parse_url($link, PHP_URL_HOST))
+            return "without";
+        if(parse_url("http://".$link, PHP_URL_SCHEME) && parse_url("http://".$link, PHP_URL_HOST))
+            return "with";
+    }
+    if(!(parse_url($link, PHP_URL_SCHEME) && parse_url($link, PHP_URL_HOST)) && !(parse_url("http://".$link, PHP_URL_SCHEME) && parse_url("http://".$link, PHP_URL_HOST)))
+        return false;
+    //if(strpos(parse_url($link, PHP_URL_HOST), "="))
+    //    return false;
+    
+    return true;
+}
 
 if(isset($update["message"]["text"])){
     $mes = $update["message"]["text"];
@@ -67,13 +83,15 @@ if(isset($update["message"]["text"])){
 
 🆕 חדש ברובוט!!
 מידע אודות כמות צפיות בקישורים.
-למידע נוסף /info",$rm);
+למידע נוסף /info
+
+לתרומות: http://y-link.ml/donate",$rm);
     elseif($mes == "/info")
         sendMessage($id,"🆕 חדש ברובוט!!
 אוכל לגלות לכם כמה כניסות בוצעו על ידי משתמשים בקישור שיצרתם דרכי.
 שלחו לי קישור ואקצר אותו, לאחר מכן שלחו לי הקישור (המקוצר) ואחזיר לכם את כמות הכניסות שמשתמשים ביצעו באמצעות הקישור.",$rm);
     else{
-        if(filter_var($mes, FILTER_VALIDATE_URL) || filter_var("http://".$mes, FILTER_VALIDATE_URL)){
+        if(validLink($mes)){
             if(parse_url($mes, PHP_URL_HOST) == "y-link.ml"){
                 $link = json_decode(file_get_contents("http://y-link.ml/api.php?method=get_click&password=tgID".$id."&link=".($mes)), true);
                 if(!$link['ok'])
@@ -111,7 +129,7 @@ elseif(isset($update["inline_query"]["query"])){
         answerInline($InlineQId,json_encode($mResult));
     }
     else{
-        if(filter_var($inlineQ, FILTER_VALIDATE_URL) || filter_var("http://".$inlineQ, FILTER_VALIDATE_URL)){
+        if(validLink($inlineQ)){
             if(parse_url($inlineQ, PHP_URL_HOST) == "y-link.ml"){
                 $link = json_decode(file_get_contents("http://y-link.ml/api.php?method=get_click&password=tgID".$inlineFromId."&link=".$inlineQ), true);
                 if(!$link['ok'])

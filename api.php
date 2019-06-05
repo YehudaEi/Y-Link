@@ -105,7 +105,7 @@ function LinkTool($link, $pass, $mode, $helperArg = null){
                 return "http://y-link.ml/".$row['id']; 
             } 
         }
-        $sql = "INSERT INTO $tablename (`link`, `id`, `counter`, `platform`, `password`) VALUES ('".urlencode(urldecode($link))."','".$helperArg."', '0' , 'ml', ".$pass."');"; 
+        $sql = "INSERT INTO $tablename (`link`, `id`, `counter`, `platform`, `password`) VALUES ('".urlencode(urldecode($link))."','".$helperArg."', '0', '".$pass."');"; 
         if ($conn->query($sql) === TRUE){} else{die(json_encode(array('ok' => false, "error" => "db error! (insert)"), TRUE));}
         $conn->close(); 
         return "http://y-link.ml/".$helperArg;
@@ -120,16 +120,31 @@ function LinkTool($link, $pass, $mode, $helperArg = null){
             } 
         }
         $rand = LinkTool(0, $link, "rand");
-        $sql = "INSERT INTO $tablename (`link`, `id`, `counter`, `platform`, `password`) VALUES ('".urlencode(urldecode($link))."','".$rand."', '0' , 'ml' ,'".$pass."');"; 
+        $sql = "INSERT INTO $tablename (`link`, `id`, `counter`, `platform`, `password`) VALUES ('".urlencode(urldecode($link))."','".$rand."', '0' ,'".$pass."');"; 
         if ($conn->query($sql) === TRUE){} else{die(json_encode(array('ok' => false, "error" => "db error! (insert)"), TRUE));}
         $conn->close(); 
         return "http://y-link.ml/".$rand;
     }
 }
-
+function validLink($link, $type = false){
+    if($type){
+        if(!(parse_url($link, PHP_URL_SCHEME) && parse_url($link, PHP_URL_HOST)) && !(parse_url("http://".$link, PHP_URL_SCHEME) && parse_url("http://".$link, PHP_URL_HOST)))
+            return false;
+        if(parse_url($link, PHP_URL_SCHEME) && parse_url($link, PHP_URL_HOST))
+            return "without";
+        if(parse_url("http://".$link, PHP_URL_SCHEME) && parse_url("http://".$link, PHP_URL_HOST))
+            return "with";
+    }
+    if(!(parse_url($link, PHP_URL_SCHEME) && parse_url($link, PHP_URL_HOST)) && !(parse_url("http://".$link, PHP_URL_SCHEME) && parse_url("http://".$link, PHP_URL_HOST)))
+        return false;
+    if(strpos(parse_url($link, PHP_URL_HOST), "="))
+        return false;
+    
+    return true;
+}
 $res = array();
 $methods = array('create', 'get_click', 'custom', 'edit_link', 'help');
-$tokens = array("eliko13542");
+$tokens = array("ABC123", "DEF456");
 
 if(!isset($_GET) || count($_GET) == 0 || !in_array($_GET['method'], $methods)){
     $res['ok'] = false;
@@ -151,11 +166,12 @@ else{
                 $res['ok'] = false;
                 $res["error"] = 'Bad Request: \'link\' is empty';
             }
-            elseif(!filter_var($_GET['link'], FILTER_VALIDATE_URL) && !filter_var("http://".$_GET['link'], FILTER_VALIDATE_URL)){
+            //elseif(!filter_var($_GET['link'], FILTER_VALIDATE_URL) && !filter_var("http://".$_GET['link'], FILTER_VALIDATE_URL)){
+            elseif(!validLink($_GET['link'])){
                 $res['ok'] = false;
                 $res["error"] = 'Bad Request: \'link\' is invalid';
             }
-            elseif(filter_var($_GET['link'], FILTER_VALIDATE_URL)){
+            elseif(validLink($_GET['link'], true) == "without"){
                 $link = LinkTool($_GET['link'], $_GET['password'], "create");
                 if($link){
                     $res['ok'] = true;
@@ -167,7 +183,7 @@ else{
                     $res["error"] = 'Unknown Error!';
                 }
             }
-            elseif(filter_var("http://".$_GET['link'], FILTER_VALIDATE_URL)){
+            elseif(validLink($_GET['link'], true) == "with"){
                 $link = LinkTool("http://".$_GET['link'], $_GET['password'], "create");
                 if($link){
                     $res['ok'] = true;
@@ -189,7 +205,7 @@ else{
                 $res['ok'] = false;
                 $res["error"] = 'Bad Request: \'link\' is empty';
             }
-            elseif(!filter_var($_GET['link'], FILTER_VALIDATE_URL)){
+            elseif(!validLink($_GET['link'])){
                 $res['ok'] = false;
                 $res["error"] = 'Bad Request: \'link\' is invalid';
             }
@@ -219,11 +235,11 @@ else{
                 $res['ok'] = false;
                 $res["error"] = 'Bad Request: \'shorten_link\' is empty';
             }
-            elseif(!filter_var($_GET['link'], FILTER_VALIDATE_URL)){
+            elseif(!validLink($_GET['link'])){
                 $res['ok'] = false;
                 $res["error"] = 'Bad Request: \'link\' is invalid';
             }
-            elseif(!filter_var($_GET['shorten_link'], FILTER_VALIDATE_URL)){
+            elseif(!validLink($_GET['shorten_link'])){
                 $res['ok'] = false;
                 $res["error"] = 'Bad Request: \'shorten_link\' is invalid';
             }
@@ -249,44 +265,6 @@ else{
                 $res["error"] = 'Bad Request: \'link\' or \'shorten_link\' is invalid';
             }
             }break;
-        case 'help':{
-            $res['valid_methods']['create']['description']              = "For creating new links";
-            $res['valid_methods']['create']['param']['method']          = "create";
-            $res['valid_methods']['create']['param']['password']        = "creator pass - to get num of clicks / edit the link";
-            $res['valid_methods']['create']['param']['link']            = "the link";
-            
-            $res['valid_methods']['get_click']['description']           = "For get num of clicks";
-            $res['valid_methods']['get_click']['param']['method']       = "get_click";
-            $res['valid_methods']['get_click']['param']['password']     = "Creator verification";
-            $res['valid_methods']['get_click']['param']['shorten_link'] = "the shorten link";
-            
-            $res['valid_methods']['edit_link']['description']           = "Edit link destination";
-            $res['valid_methods']['edit_link']['param']['method']       = "get_click";
-            $res['valid_methods']['edit_link']['param']['password']     = "Creator verification";
-            $res['valid_methods']['edit_link']['param']['shorten_link'] = "the shorten link";
-            $res['valid_methods']['edit_link']['param']['link']         = "the new link";
-
-            $res['valid_methods']['custom']['description']              = "custom shorten link";
-            $res['valid_methods']['custom']['param']['method']          = "custom";
-            $res['valid_methods']['custom']['param']['password']        = "Creator verification";
-            $res['valid_methods']['custom']['param']['token']           = "token..";
-            $res['valid_methods']['custom']['param']['path']            = "custom path link (e.g. y-link.ml/path)";
-            $res['valid_methods']['custom']['param']['link']            = "the link";
-
-            $res['valid_methods']['help']['description']                = "get help";
-            $res['valid_methods']['help']['param']['method']            = "help";
-
-            $res['variables']['method']['type']                         = "string";
-            $res['variables']['method']['description']                  = "The method..";
-            $res['variables']['password']['type']                       = "string (Up to 20)";
-            $res['variables']['password']['description']                = "creator pass - to get num of clicks / edit the link";
-            $res['variables']['link']['type']                           = "valid link (string)";
-            $res['variables']['link']['description']                    = "The Link...";
-            $res['variables']['path']['type']                           = "string (Up to 20)";
-            $res['variables']['path']['description']                    = "shorten link path: y-link.ml/path";
-            $res['variables']['shorten_link']['type']                   = "y-link.ml link (string)";
-            $res['variables']['shorten_link']['description']            = "api output shorten link";
-            }break;
         case 'custom':{
             if(!isset($_GET['token'])){
                 $res['ok'] = false;
@@ -304,7 +282,7 @@ else{
                 $res['ok'] = false;
                 $res["error"] = 'Bad Request: \'token\' is invalid';
             }
-            elseif(!filter_var($_GET['link'], FILTER_VALIDATE_URL) && !filter_var("http://".$_GET['link'], FILTER_VALIDATE_URL)){
+            elseif(!validLink($_GET['link'])){
                 $res['ok'] = false;
                 $res["error"] = 'Bad Request: \'link\' is invalid';
             }
@@ -312,7 +290,7 @@ else{
                 $res['ok'] = false;
                 $res["error"] = 'Bad Request: \'path\' is invalid';
             }
-            elseif(filter_var($_GET['link'], FILTER_VALIDATE_URL)){
+            elseif(validLink($_GET['link'], true) == "without"){
                 $link = LinkTool($_GET['link'], $_GET['password'], "create_custom", $_GET['path']);
                 if($link){
                     $res['ok'] = true;
@@ -324,7 +302,7 @@ else{
                     $res["error"] = 'Unknown Error!';
                 }
             }
-            elseif(filter_var("http://".$_GET['link'], FILTER_VALIDATE_URL)){
+            elseif(validLink($_GET['link'], true) == "with"){
                 $link = LinkTool("http://".$_GET['link'], $_GET['password'], "create_custom", $_GET['path']);
                 if($link){
                     $res['ok'] = true;
@@ -340,6 +318,51 @@ else{
                 $res['ok'] = false;
                 $res["error"] = 'Unknown Error!';
             }
+            }break;
+        case 'help':{
+            $res['owner']['name'] = "Yehuda Eisenberg";
+            $res['owner']['mail'] = "yehuda.telegram@gmail.com";
+            $res['owner']['support'] = "info@y-link.ml";
+            $res['owner']['GitHub'] = "https://github.com/YehudaEi/Y-Link";
+            $res['owner']['Telegram'] = "@YehudaEisenberg";
+            
+            
+            $res['valid_methods']['create']['description']              = "to create new links";
+            $res['valid_methods']['create']['param']['method']          = "create";
+            $res['valid_methods']['create']['param']['password']        = "creator pass - to get num of clicks / edit the link";
+            $res['valid_methods']['create']['param']['link']            = "the link";
+            
+            $res['valid_methods']['get_click']['description']           = "to get num of clicks";
+            $res['valid_methods']['get_click']['param']['method']       = "get_click";
+            $res['valid_methods']['get_click']['param']['password']     = "Creator verification";
+            $res['valid_methods']['get_click']['param']['shorten_link'] = "the shortened link";
+            
+            $res['valid_methods']['edit_link']['description']           = "Edit link destination";
+            $res['valid_methods']['edit_link']['param']['method']       = "get_click";
+            $res['valid_methods']['edit_link']['param']['password']     = "Creator verification";
+            $res['valid_methods']['edit_link']['param']['shorten_link'] = "the shortened link";
+            $res['valid_methods']['edit_link']['param']['link']         = "the new link";
+
+            $res['valid_methods']['custom']['description']              = "custom shortened link";
+            $res['valid_methods']['custom']['param']['method']          = "custom";
+            $res['valid_methods']['custom']['param']['password']        = "Creator verification";
+            $res['valid_methods']['custom']['param']['token']           = "token..";
+            $res['valid_methods']['custom']['param']['path']            = "custom path link (e.g. y-link.ml/path)";
+            $res['valid_methods']['custom']['param']['link']            = "the link";
+
+            $res['valid_methods']['help']['description']                = "receive help";
+            $res['valid_methods']['help']['param']['method']            = "help";
+
+            $res['variables']['method']['type']                         = "string";
+            $res['variables']['method']['description']                  = "The method..";
+            $res['variables']['password']['type']                       = "string (Up to 20)";
+            $res['variables']['password']['description']                = "creator pass - to get num of clicks / edit the link";
+            $res['variables']['link']['type']                           = "valid link (string)";
+            $res['variables']['link']['description']                    = "The Link...";
+            $res['variables']['path']['type']                           = "string (Up to 20)";
+            $res['variables']['path']['description']                    = "shortened link path: y-link.ml/path";
+            $res['variables']['shorten_link']['type']                   = "y-link.ml link (string)";
+            $res['variables']['shorten_link']['description']            = "api output shortened link";
             }break;
         default:
             $res['ok'] = false;
