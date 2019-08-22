@@ -4,6 +4,8 @@ header("Cache-Control: no-cache");
 header("Cache-Control: no-store");
 date_default_timezone_set('Asia/Jerusalem');
 
+define('USE_TOKEN', false);
+
 function rnd($len = 6) {
     $alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
     $pass = array(); 
@@ -15,11 +17,10 @@ function rnd($len = 6) {
     return implode($pass); 
 }
 function LinkTool($link, $pass, $mode, $helperArg = null){ 
-    
     $servername = "localhost"; 
     $username = "root"; 
     $password = ""; 
-    $dbname = "link"; 
+    $dbname = "link";
      
     $tablename = "`Link`"; 
     // Create connection 
@@ -68,6 +69,7 @@ function LinkTool($link, $pass, $mode, $helperArg = null){
     }
     elseif($mode == "link_exist"){
         $linkId = substr(parse_url($link)['path'],1);
+        $linkId = $conn->real_escape_string($linkId);
         $sql = "SELECT `password` FROM `Link` WHERE `id` = '".$linkId."'"; 
         $temp = $conn->query($sql);
         if($temp->num_rows > 0){
@@ -82,6 +84,7 @@ function LinkTool($link, $pass, $mode, $helperArg = null){
     }
     elseif($mode == "update_link" || parse_url($helperArg, PHP_URL_HOST) == "y-link.ml"){
         $linkId = substr(parse_url($helperArg)['path'],1);
+        $linkId = $conn->real_escape_string($linkId);
         if(preg_match("/^[a-zA-Z0-9]+$/",$linkId)){
             $sql = "SELECT `password` FROM `Link` WHERE `id` = '".$linkId."'"; 
             $temp = $conn->query($sql);
@@ -105,7 +108,15 @@ function LinkTool($link, $pass, $mode, $helperArg = null){
                 return "http://y-link.ml/".$row['id']; 
             } 
         }
-        $sql = "INSERT INTO $tablename (`link`, `id`, `counter`, `platform`, `password`) VALUES ('".urlencode(urldecode($link))."','".$helperArg."', '0', '".$pass."');"; 
+        
+        $link = $conn->real_escape_string($link);
+        if(LinkTool("http://y-link.ml/".$helperArg , $pass, "link_exist") == "not exist"){
+            $sql = "INSERT INTO $tablename (`link`, `id`, `counter`, `password`, `deleted`) VALUES ('".urlencode(urldecode($link))."','".$helperArg."', '0' ,'".$pass."', 0);"; 
+        }
+        else{
+            $helperArg = LinkTool(0, $link, "rand");
+            $sql = "INSERT INTO $tablename (`link`, `id`, `counter`, `password`, `deleted`) VALUES ('".urlencode(urldecode($link))."','".$helperArg."', '0' ,'".$pass."', 0);"; 
+        }
         if ($conn->query($sql) === TRUE){} else{die(json_encode(array('ok' => false, "error" => "db error! (insert)"), TRUE));}
         $conn->close(); 
         return "http://y-link.ml/".$helperArg;
@@ -115,12 +126,15 @@ function LinkTool($link, $pass, $mode, $helperArg = null){
         $temp = $conn->query($sql); 
         while ($row = $temp->fetch_assoc()){ 
             if($row['link'] && strtolower($link) == strtolower(urldecode($row['link'])) && $row['password'] == $pass) { 
-                $conn->close(); 
-                return "http://y-link.ml/".$row['id']; 
+                $conn->close();
+                return "http://y-link.ml/".$row['id'];
             } 
         }
+        
+        $link = $conn->real_escape_string($link);
+        
         $rand = LinkTool(0, $link, "rand");
-        $sql = "INSERT INTO $tablename (`link`, `id`, `counter`, `platform`, `password`) VALUES ('".urlencode(urldecode($link))."','".$rand."', '0' ,'".$pass."');"; 
+        $sql = "INSERT INTO $tablename (`link`, `id`, `counter`, `password`, `deleted`) VALUES ('".urlencode(urldecode($link))."','".$rand."', '0' ,'".$pass."', 0);"; 
         if ($conn->query($sql) === TRUE){} else{die(json_encode(array('ok' => false, "error" => "db error! (insert)"), TRUE));}
         $conn->close(); 
         return "http://y-link.ml/".$rand;
@@ -154,7 +168,7 @@ elseif(!isset($_GET['password']) && $_GET['method'] != "help"){
     $res['ok'] = false;
     $res["error"] = 'Bad Request: \'password\' is empty';
 }
-elseif((isset($_GET['password']) && (!preg_match("/^[a-zA-Z0-9]+$/",$_GET['password']) || strlen($_GET['password']) == 0 || strlen($_GET['password']) > 20)) && $_GET['method'] != "help"){
+elseif((isset($_GET['password']) && (!preg_match("/^[a-zA-Z0-9._]+$/",$_GET['password']) || strlen($_GET['password']) == 0 || strlen($_GET['password']) > 20)) && $_GET['method'] != "help"){
     $res['ok'] = false;
     $res["error"] = 'Bad Request: \'password\' is invalid';
 }
@@ -166,7 +180,6 @@ else{
                 $res['ok'] = false;
                 $res["error"] = 'Bad Request: \'link\' is empty';
             }
-            //elseif(!filter_var($_GET['link'], FILTER_VALIDATE_URL) && !filter_var("http://".$_GET['link'], FILTER_VALIDATE_URL)){
             elseif(!validLink($_GET['link'])){
                 $res['ok'] = false;
                 $res["error"] = 'Bad Request: \'link\' is invalid';
@@ -266,7 +279,7 @@ else{
             }
             }break;
         case 'custom':{
-            if(!isset($_GET['token'])){
+            if(USE_TOKEN && !isset($_GET['token'])){
                 $res['ok'] = false;
                 $res["error"] = 'Bad Request: \'token\' is empty';
             }
@@ -278,7 +291,7 @@ else{
                 $res['ok'] = false;
                 $res["error"] = 'Bad Request: \'path\' is empty';
             }
-            elseif(!in_array($_GET['token'], $tokens)){
+            elseif(USE_TOKEN && !in_array($_GET['token'], $tokens)){
                 $res['ok'] = false;
                 $res["error"] = 'Bad Request: \'token\' is invalid';
             }
@@ -346,7 +359,8 @@ else{
             $res['valid_methods']['custom']['description']              = "custom shortened link";
             $res['valid_methods']['custom']['param']['method']          = "custom";
             $res['valid_methods']['custom']['param']['password']        = "Creator verification";
-            $res['valid_methods']['custom']['param']['token']           = "token..";
+            if(USE_TOKEN)
+                $res['valid_methods']['custom']['param']['token']       = "token..";
             $res['valid_methods']['custom']['param']['path']            = "custom path link (e.g. y-link.ml/path)";
             $res['valid_methods']['custom']['param']['link']            = "the link";
 

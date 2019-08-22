@@ -100,7 +100,7 @@ if(isset($update["message"]["text"])){
                     sendMessage($id,"כמות הלחיצות על הקישור שלך: ".$link['res']['clicks'],null,null,$mesId);
             }
             else{
-                $link = json_decode(file_get_contents("http://y-link.ml/api.php?method=create&password=tgID".$id."&link=".($mes)), true);
+                $link = json_decode(file_get_contents("http://y-link.ml/api.php?method=create&password=tgID".$id."&link=".urlencode($mes)), true);
                 if(!$link['ok'])
                     sendMessage($id,"הקישור אינו תקין!\nשלח קישור תקין כגון: http://y-link.ml",null,null,$mesId);
                 else
@@ -153,7 +153,7 @@ elseif(isset($update["inline_query"]["query"])){
                 	));
             }
             else{
-                $link = json_decode(file_get_contents("http://y-link.ml/api.php?method=create&password=tgID".$inlineFromId."&link=".$inlineQ), true);
+                $link = json_decode(file_get_contents("http://y-link.ml/api.php?method=create&password=tgID".$inlineFromId."&link=".urlencode($inlineQ)), true);
                 if(!$link['ok'])
                     $mResult = array(array(
                 		"type" => "article",
