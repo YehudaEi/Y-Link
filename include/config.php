@@ -4,13 +4,13 @@
 // GENERAL
 
 // Site URL (no trailing slash)
-define('siteURL', 'http://y-link.ml');
+define('siteURL', 'https://y-link.ml');
 
 // Page title for your site
-define('title', 'Yehuda Link'); 
+define('title', 'Yehuda Link | קיצור קישורים'); 
 
 // The short title of your site, used in the footer and in some sub pages
-define('shortTitle', 'Yehuda Eisenberg');
+define('shortTitle', '<a href="https://yehudae.ga">Yehuda Eisenberg</a>');
 
 // A description of your site, meta tag.
 define('description', 'y-link.ml - האתר הרשמי לקיצור קישורים מאת יהודה אייזנברג'); 
@@ -19,14 +19,25 @@ define('description', 'y-link.ml - האתר הרשמי לקיצור קישורי
 define('HelloText', 'Welcome! <br>new design!'); 
 
 // The favicon for your site
-define('favicon', '/theme/assets/img/logo.png');
+define('favicon', '/include/assets/img/logo.png');
 
 // Logo for your site, displayed on home page
-define('logo', '/theme/assets/img/logo.png');
+define('logo', '/include/assets/img/logo.png');
 
 // Enables the custom URL field
 // true or false
 define('enableCustomURL', true);
+
+define('DataBase', array(
+    "ServerName" => "localhost",
+    "Username" => "root",
+    "Password" => "",
+    "DBName" => "link"
+));
+define('USE_TOKEN', false);
+define('LINK_REGEX', '/^[a-zA-Z0-9\x{0590}-\x{05fe}_.\s\-]+$/u');
+
+define('SITE_DOMAIN', preg_replace("(^https?://)", "", siteURL));
 
 // Optional
 // Set a primary colour to be used. Default: #007bff
@@ -48,7 +59,7 @@ define('colour', '#007bff');
 $footerLinks = [
     //"About"       => "/",
     "GitHub"        => "https://github.com/YehudaEi/Y-Link",
-    "free api"      => "/api.php",
+    "free api"      => "https://yehudaei.github.io/Y-Link/#api-methods",
     "Contact"       => "mailto:yehuda.telegram@gmail.com",
     "Telegram bot"  => "https://t.me/YLinkBot"
     //"Admin"   =>  "/admin"

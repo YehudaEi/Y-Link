@@ -1,10 +1,10 @@
 <?php
+include('include/config.php');
+
 header('Content-Type: application/json; charset=utf-8');
 header("Cache-Control: no-cache");
 header("Cache-Control: no-store");
 date_default_timezone_set('Asia/Jerusalem');
-
-define('USE_TOKEN', false);
 
 function rnd($len = 6) {
     $alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
@@ -17,14 +17,11 @@ function rnd($len = 6) {
     return implode($pass); 
 }
 function LinkTool($link, $pass, $mode, $helperArg = null){ 
-    $servername = "localhost"; 
-    $username = "root"; 
-    $password = ""; 
-    $dbname = "link";
-     
+    
     $tablename = "`Link`"; 
     // Create connection 
-    $conn = new mysqli($servername, $username, $password, $dbname); 
+    $conn = new mysqli(DataBase['ServerName'], DataBase['Username'], DataBase['Password'], DataBase['DBName']); 
+    mysqli_set_charset($conn, "utf8mb4");
     // Check connection 
     if ($conn->connect_error) {die(json_encode(array('ok' => false, "error" => "db error! (connection)"), TRUE));}  
 
@@ -46,9 +43,9 @@ function LinkTool($link, $pass, $mode, $helperArg = null){
         }
         return $randTemp;
     }
-    elseif($mode == "get_click" && parse_url($link, PHP_URL_HOST) == "y-link.ml"){
+    elseif($mode == "get_click" && parse_url($link, PHP_URL_HOST) == SITE_DOMAIN){
         $linkId = substr(parse_url($link)['path'],1);
-        if(preg_match("/^[a-zA-Z0-9]+$/",$linkId)){
+        if(preg_match(LINK_REGEX, $linkId)){
             $sql = "SELECT `password` FROM `Link` WHERE `id` = '".$linkId."'"; 
             $temp = $conn->query($sql);
             $LinkPass =  $temp->fetch_assoc()["password"];
@@ -82,16 +79,16 @@ function LinkTool($link, $pass, $mode, $helperArg = null){
         }
         return "not exist";
     }
-    elseif($mode == "update_link" || parse_url($helperArg, PHP_URL_HOST) == "y-link.ml"){
+    elseif($mode == "update_link" || parse_url($helperArg, PHP_URL_HOST) == SITE_DOMAIN){
         $linkId = substr(parse_url($helperArg)['path'],1);
         $linkId = $conn->real_escape_string($linkId);
-        if(preg_match("/^[a-zA-Z0-9]+$/",$linkId)){
+        if(preg_match(LINK_REGEX, $linkId)){
             $sql = "SELECT `password` FROM `Link` WHERE `id` = '".$linkId."'"; 
             $temp = $conn->query($sql);
             $LinkPass =  $temp->fetch_assoc()["password"];
             if($LinkPass == $pass){
                 $sql = "UPDATE $tablename SET `link` = '".$link."' WHERE `link`.`id` = '".$linkId."';"; 
-                if ($conn->query($sql) === TRUE){return "http://y-link.ml/".$linkId;} else{die(json_encode(array('ok' => false, "error" => "db error! (update)"), TRUE));}
+                if ($conn->query($sql) === TRUE){return siteURL."/".$linkId;} else{die(json_encode(array('ok' => false, "error" => "db error! (update)"), TRUE));}
             }
             else
                 die(json_encode(array('ok' => false, "error" => "Bad Request: Worng Password"), TRUE));
@@ -105,12 +102,12 @@ function LinkTool($link, $pass, $mode, $helperArg = null){
         while ($row = $temp->fetch_assoc()){ 
             if($row['link'] && strtolower($link) == strtolower(urldecode($row['link'])) && $row['password'] == $pass) { 
                 $conn->close(); 
-                return "http://y-link.ml/".$row['id']; 
+                return siteURL."/".$row['id']; 
             } 
         }
         
         $link = $conn->real_escape_string($link);
-        if(LinkTool("http://y-link.ml/".$helperArg , $pass, "link_exist") == "not exist"){
+        if(LinkTool(siteURL."/".$helperArg , $pass, "link_exist") == "not exist"){
             $sql = "INSERT INTO $tablename (`link`, `id`, `counter`, `password`, `deleted`) VALUES ('".urlencode(urldecode($link))."','".$helperArg."', '0' ,'".$pass."', 0);"; 
         }
         else{
@@ -119,7 +116,7 @@ function LinkTool($link, $pass, $mode, $helperArg = null){
         }
         if ($conn->query($sql) === TRUE){} else{die(json_encode(array('ok' => false, "error" => "db error! (insert)"), TRUE));}
         $conn->close(); 
-        return "http://y-link.ml/".$helperArg;
+        return siteURL."/".$helperArg;
     }
     elseif($mode == "create"){
         $sql = "SELECT * FROM $tablename"; 
@@ -127,7 +124,7 @@ function LinkTool($link, $pass, $mode, $helperArg = null){
         while ($row = $temp->fetch_assoc()){ 
             if($row['link'] && strtolower($link) == strtolower(urldecode($row['link'])) && $row['password'] == $pass) { 
                 $conn->close();
-                return "http://y-link.ml/".$row['id'];
+                return siteURL."/".$row['id'];
             } 
         }
         
@@ -137,7 +134,7 @@ function LinkTool($link, $pass, $mode, $helperArg = null){
         $sql = "INSERT INTO $tablename (`link`, `id`, `counter`, `password`, `deleted`) VALUES ('".urlencode(urldecode($link))."','".$rand."', '0' ,'".$pass."', 0);"; 
         if ($conn->query($sql) === TRUE){} else{die(json_encode(array('ok' => false, "error" => "db error! (insert)"), TRUE));}
         $conn->close(); 
-        return "http://y-link.ml/".$rand;
+        return siteURL."/".$rand;
     }
 }
 function validLink($link, $type = false){
@@ -156,9 +153,10 @@ function validLink($link, $type = false){
     
     return true;
 }
+
 $res = array();
 $methods = array('create', 'get_click', 'custom', 'edit_link', 'help');
-$tokens = array("ABC123", "DEF456");
+$tokens = array("Yehuda132", "eliko246", "yonibee!", "eitan_g");
 
 if(!isset($_GET) || count($_GET) == 0 || !in_array($_GET['method'], $methods)){
     $res['ok'] = false;
@@ -168,7 +166,7 @@ elseif(!isset($_GET['password']) && $_GET['method'] != "help"){
     $res['ok'] = false;
     $res["error"] = 'Bad Request: \'password\' is empty';
 }
-elseif((isset($_GET['password']) && (!preg_match("/^[a-zA-Z0-9._]+$/",$_GET['password']) || strlen($_GET['password']) == 0 || strlen($_GET['password']) > 20)) && $_GET['method'] != "help"){
+elseif((isset($_GET['password']) && (!preg_match(LINK_REGEX, $_GET['password']) || strlen($_GET['password']) == 0 || strlen($_GET['password']) > 20)) && $_GET['method'] != "help"){
     $res['ok'] = false;
     $res["error"] = 'Bad Request: \'password\' is invalid';
 }
@@ -180,6 +178,7 @@ else{
                 $res['ok'] = false;
                 $res["error"] = 'Bad Request: \'link\' is empty';
             }
+            //elseif(!filter_var($_GET['link'], FILTER_VALIDATE_URL) && !filter_var("http://".$_GET['link'], FILTER_VALIDATE_URL)){
             elseif(!validLink($_GET['link'])){
                 $res['ok'] = false;
                 $res["error"] = 'Bad Request: \'link\' is invalid';
@@ -222,7 +221,7 @@ else{
                 $res['ok'] = false;
                 $res["error"] = 'Bad Request: \'link\' is invalid';
             }
-            elseif(parse_url($_GET['link'], PHP_URL_HOST) == "y-link.ml"){
+            elseif(parse_url($_GET['link'], PHP_URL_HOST) == SITE_DOMAIN){
                 $tmp = LinkTool($_GET['link'], $_GET['password'], "link_exist");
                 if($tmp == "not exist"){
                     $res['ok'] = false;
@@ -256,7 +255,7 @@ else{
                 $res['ok'] = false;
                 $res["error"] = 'Bad Request: \'shorten_link\' is invalid';
             }
-            elseif(parse_url($_GET['shorten_link'], PHP_URL_HOST) == "y-link.ml"){
+            elseif(parse_url($_GET['shorten_link'], PHP_URL_HOST) == SITE_DOMAIN){
                 $tmp = LinkTool($_GET['shorten_link'], $_GET['password'], "link_exist");
                 if($tmp == "not exist"){
                     $res['ok'] = false;
@@ -299,7 +298,7 @@ else{
                 $res['ok'] = false;
                 $res["error"] = 'Bad Request: \'link\' is invalid';
             }
-            elseif(!preg_match("/^[a-zA-Z0-9]+$/",$_GET['path']) || strlen($_GET['path']) > 30){
+            elseif(!preg_match(LINK_REGEX, $_GET['path']) || strlen($_GET['path']) > 30){
                 $res['ok'] = false;
                 $res["error"] = 'Bad Request: \'path\' is invalid';
             }
@@ -335,7 +334,7 @@ else{
         case 'help':{
             $res['owner']['name'] = "Yehuda Eisenberg";
             $res['owner']['mail'] = "yehuda.telegram@gmail.com";
-            $res['owner']['support'] = "info@y-link.ml";
+            //$res['owner']['support'] = "links@".SITE_DOMAIN;
             $res['owner']['GitHub'] = "https://github.com/YehudaEi/Y-Link";
             $res['owner']['Telegram'] = "@YehudaEisenberg";
             
@@ -360,8 +359,8 @@ else{
             $res['valid_methods']['custom']['param']['method']          = "custom";
             $res['valid_methods']['custom']['param']['password']        = "Creator verification";
             if(USE_TOKEN)
-                $res['valid_methods']['custom']['param']['token']       = "token..";
-            $res['valid_methods']['custom']['param']['path']            = "custom path link (e.g. y-link.ml/path)";
+                $res['valid_methods']['custom']['param']['token']           = "token..";
+            $res['valid_methods']['custom']['param']['path']            = "custom path link (e.g. ".SITE_DOMAIN."/path)";
             $res['valid_methods']['custom']['param']['link']            = "the link";
 
             $res['valid_methods']['help']['description']                = "receive help";
@@ -374,8 +373,8 @@ else{
             $res['variables']['link']['type']                           = "valid link (string)";
             $res['variables']['link']['description']                    = "The Link...";
             $res['variables']['path']['type']                           = "string (Up to 20)";
-            $res['variables']['path']['description']                    = "shortened link path: y-link.ml/path";
-            $res['variables']['shorten_link']['type']                   = "y-link.ml link (string)";
+            $res['variables']['path']['description']                    = "shortened link path: ".SITE_DOMAIN."/path";
+            $res['variables']['shorten_link']['type']                   = SITE_DOMAIN." link (string)";
             $res['variables']['shorten_link']['description']            = "api output shortened link";
             }break;
         default:

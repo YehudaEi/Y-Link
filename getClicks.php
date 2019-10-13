@@ -10,22 +10,16 @@
         if(strpos(parse_url($link, PHP_URL_HOST), "="))
             return false;
         
+        
         return true;
     }
     
 	if (isset($_REQUEST['url']) && validLink($_REQUEST['url'])) {
+    	$url      = $_REQUEST['url'];
 
-    	$url   = $_REQUEST['url'];
-    	$path  = $_REQUEST['path'] ?? null ;
-    	//$token = $_REQUEST['token'] ?? null ;
-
-		//if(isset($path) && isset($token) && !empty($path) && !empty($token))
-		if(isset($path) && !empty($path))
-		    $return = json_decode(file_get_contents(siteURL."/api.php?method=custom&password=SITECREATE&path=".$path."&link=".urlencode($url)), true);
-		else
-		    $return = json_decode(file_get_contents(siteURL."/api.php?method=create&password=SITECREATE&link=".urlencode($url)), true);
+	    $return   = json_decode(file_get_contents(siteURL."/api.php?method=get_click&password=SITECREATE&link=".urlencode($url)), true);
 		
-		$shorturl = $return['res']['link'] ?? '';
+		$count    = $return['res']['clicks'] ?? '';
 		$message  = $return['ok'] ? '' : $return['error'];
 		$status   = $return['ok'] ?? false;
 	}
@@ -34,21 +28,18 @@
 	
 <?php if( isset($status) && $status ):  ?>
 
-	<?php $url = preg_replace("(^https?://)", "", $shorturl );  ?>
-
 	<section class="success-screen">
 		<div class="container verticle-center">
 			<div class="main-content">
 				<div class="close noselect">
-				    <a href="<?php echo siteURL ?>"><i class="material-icons">close</i></a>
+				    <a href="<?php echo siteURL ?>/getClicks.php"><i class="material-icons">close</i></a>
 				</div>
 				<section class="head">
-					<h2>YOUR SHORTENED LINK:</h2>
+					<h2>Clicks:</h2>
 				</section>
 				<section class="link-section">
-					<input type="text" class="short-url" disabled style="text-transform:none;" value="<?php echo $shorturl; ?>">
-					<button class="short-url-button noselect" data-clipboard-text="<?php echo $shorturl; ?>">Copy</button>
-					<?php /*<span class="info">View info &amp; stats at <a href="<?php echo $shorturl; ?>+"><?php echo $url; ?>+</a></span>*/ ?>
+					<input type="text" class="short-url" disabled style="text-transform:none;" value="<?php echo $count; ?>">
+					<button class="short-url-button noselect" data-clipboard-text='click of the link "<?php echo $url ?>": <?php echo $count; ?>'>Copy</button>
 				</section>
 			</div>
 	</section>
@@ -62,33 +53,27 @@
 	<div class="container verticle-center main">
 		<div class="main-content">
 		    <div class="close noselect">
-			    <a href="<?php echo siteURL ?>/getClicks.php" title="Get Clicks"><i class="material-icons">settings</i> get clicks</a>
+			    <a href="<?php echo siteURL ?>" title="home"><i class="material-icons">home</i> Home</a>
 			</div>
 			<div class="above">
 				<img class="noselect" src="<?php echo siteURL ?><?php echo logo ?>" alt="Logo" width="95px">
 			</div>
 			<section class="head">
-				<p><?php echo HelloText ?></p>
+				<p>Get Clicks of link, <br>
+				Only links created through the site!
+				</p>
 			</section>
 			<section class="field-section">
 				<?php if ( isset( $_REQUEST['url'] ) && $_REQUEST['url'] != 'http://' ): ?>
 					<?php if (!empty($message)): ?>
 						<div id="error" class="alert alert-warning error" role="alert">
 							<h5>Oh no, <?php echo $message; ?>!</h5>
-						</div>	    
+						</div>
 					<?php endif; ?>
 				<?php endif; ?>
 				<form method="post" action="">
-					<input type="url" name="url" class="url" id="url" placeholder="PASTE URL, SHORTEN &amp; SHARE" required>
-					<input type="submit" value="Shorten">
-					<?php if (enableCustomURL): ?>
-						<span class="customise-button noselect" id="customise-toggle"><img src="<?php echo siteURL ?>/include/assets/svg/custom-url.svg" alt="Options"> Custom Link</span>
-						<div class="customise-container" id="customise-link" style="display:none;">
-							<span><?php echo SITE_DOMAIN; ?>/</span>
-							<input type="text" name="path" class="custom" placeholder="CUSTOM URL">
-							<!--<input type="text" name="token" class="custom" placeholder="TOKEN">-->
-						</div>
-					<?php endif; ?>
+					<input type="url" name="url" class="url" id="url" placeholder="<?php echo siteURL ?> link" required>
+					<input type="submit" value="get">
 				</form>
 			</section>
 			<section class="footer">

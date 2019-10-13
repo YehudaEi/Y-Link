@@ -1,4 +1,6 @@
 <?php
+include('include/config.php');
+
 header('Content-Type: text/html; charset=utf-8');
 date_default_timezone_set('Asia/Jerusalem');
 
@@ -7,11 +9,11 @@ $update = json_decode($update, TRUE);
 
 if($update == NULL){
     http_response_code(403);
-    include 'error!/403.html';
+    include 'apache-errors/403.html';
     exit();
 }
 
-$rm = json_encode(array('inline_keyboard' => array(array(array('text' => 'לתרומות', 'url' => "http://y-link.ml/donate")),array(array('text' => 'ליוצר הבוט', 'url' => "y-link.ml/Mail")))));
+$rm = json_encode(array('inline_keyboard' => array(array(array('text' => 'לתרומות', 'url' => "y-link.ml/donate")),array(array('text' => 'ליוצר הבוט', 'url' => "t.me/YehudaEisenberg")))));
 $markup = array('inline_keyboard' => array(array(array('text' => 'מעבר לרובוט', 'url' => "t.me/YLinkbot"))));
 
 function curlPost($method,$datas=[]==NULL){
@@ -92,23 +94,23 @@ if(isset($update["message"]["text"])){
 שלחו לי קישור ואקצר אותו, לאחר מכן שלחו לי הקישור (המקוצר) ואחזיר לכם את כמות הכניסות שמשתמשים ביצעו באמצעות הקישור.",$rm);
     else{
         if(validLink($mes)){
-            if(parse_url($mes, PHP_URL_HOST) == "y-link.ml"){
-                $link = json_decode(file_get_contents("http://y-link.ml/api.php?method=get_click&password=tgID".$id."&link=".($mes)), true);
+            if(parse_url($mes, PHP_URL_HOST) == SITE_DOMAIN){
+                $link = json_decode(file_get_contents(siteURL."/api.php?method=get_click&password=tgID".$id."&link=".($mes)), true);
                 if(!$link['ok'])
                     sendMessage($id,"שגיאה! נסה שנית..",null,null,$mesId);
                 else
                     sendMessage($id,"כמות הלחיצות על הקישור שלך: ".$link['res']['clicks'],null,null,$mesId);
             }
             else{
-                $link = json_decode(file_get_contents("http://y-link.ml/api.php?method=create&password=tgID".$id."&link=".urlencode($mes)), true);
+                $link = json_decode(file_get_contents(siteURL."/api.php?method=create&password=tgID".$id."&link=".urlencode($mes)), true);
                 if(!$link['ok'])
-                    sendMessage($id,"הקישור אינו תקין!\nשלח קישור תקין כגון: http://y-link.ml",null,null,$mesId);
+                    sendMessage($id,"הקישור אינו תקין!\nשלח קישור תקין כגון: ".siteURL,null,null,$mesId);
                 else
                     sendMessage($id,$link['res']['link'],null,null,$mesId);
             }
         }
         else
-            sendMessage($id,"הקישור אינו תקין!\nשלח קישור תקין כגון: http://y-link.ml",null,null,$mesId);
+            sendMessage($id,"הקישור אינו תקין!\nשלח קישור תקין כגון: ".siteURL,null,null,$mesId);
     }
 }
 elseif(isset($update["inline_query"]["query"])){
@@ -121,7 +123,7 @@ elseif(isset($update["inline_query"]["query"])){
     		"type" => "article",
             "id" => "1",
             "title" => "הקלד את הקישור",
-    		"description" => "לדוגמא: http://y-link.ml",
+    		"description" => "לדוגמא: ".siteURL,
             "message_text" => "לחץ [כאן](t.me/YLinkBot) למעבר לבוט",
             "reply_markup" => $markup,
             "parse_mode" => "Markdown",
@@ -130,8 +132,8 @@ elseif(isset($update["inline_query"]["query"])){
     }
     else{
         if(validLink($inlineQ)){
-            if(parse_url($inlineQ, PHP_URL_HOST) == "y-link.ml"){
-                $link = json_decode(file_get_contents("http://y-link.ml/api.php?method=get_click&password=tgID".$inlineFromId."&link=".$inlineQ), true);
+            if(parse_url($inlineQ, PHP_URL_HOST) == SITE_DOMAIN){
+                $link = json_decode(file_get_contents(siteURL."/api.php?method=get_click&password=tgID".$inlineFromId."&link=".$inlineQ), true);
                 if(!$link['ok'])
                     $mResult = array(array(
                 		"type" => "article",
@@ -153,7 +155,7 @@ elseif(isset($update["inline_query"]["query"])){
                 	));
             }
             else{
-                $link = json_decode(file_get_contents("http://y-link.ml/api.php?method=create&password=tgID".$inlineFromId."&link=".urlencode($inlineQ)), true);
+                $link = json_decode(file_get_contents(siteURL."/api.php?method=create&password=tgID".$inlineFromId."&link=".urlencode($inlineQ)), true);
                 if(!$link['ok'])
                     $mResult = array(array(
                 		"type" => "article",
@@ -180,7 +182,7 @@ elseif(isset($update["inline_query"]["query"])){
         		"type" => "article",
                 "id" => "1",
                 "title" => "הקישור אינו תקין",
-        		"description" => "קישור לדוגמא: http://y-link.ml",
+        		"description" => "קישור לדוגמא: ".siteURL,
                 "message_text" => "לחץ [כאן](t.me/YLinkBot) למעבר לבוט",
                 "reply_markup" => $markup,
                 "parse_mode" => "Markdown",

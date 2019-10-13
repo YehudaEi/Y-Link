@@ -1,17 +1,19 @@
 <?php
+
+    include("include/config.php");
+
     header("Cache-Control: no-cache");
     header("Cache-Control: no-store");
-    $uri = substr($_SERVER['REQUEST_URI'], 1);
-    if(isset($uri) && preg_match("/^[a-zA-Z0-9_]+$/",$uri)){
-        $servername = "localhost"; 
-        $username = "root";
-        $password = ""; 
-        $dbname = "link"; 
-         
-        $conn = new mysqli($servername, $username, $password, $dbname); 
+    
+    $uri = urldecode(substr($_SERVER['REQUEST_URI'], 1));
+    
+    if(isset($uri) && preg_match(LINK_REGEX, $uri)){
+
+        $conn = new mysqli(DataBase['ServerName'], DataBase['Username'], DataBase['Password'], DataBase['DBName']); 
+        mysqli_set_charset($conn, "utf8mb4");
         if ($conn->connect_error) { 
             http_response_code(500);
-            include 'error!/500.html';
+            include 'apache-errors/500.html';
             die(); 
         }  
         $sql = "SELECT `counter`,`link`,`id` FROM `Link` WHERE `id` = \"".$uri."\" AND `Link`.`deleted` = FALSE"; 
@@ -35,11 +37,9 @@
         $conn->query($sql);
     }else{
         http_response_code(404);
-        include 'error!/404.html';
+        include 'apache-errors/404.html';
     }
-    
     
     if(isset($conn))
         $conn->close();
-    
 ?>
