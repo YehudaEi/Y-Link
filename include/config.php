@@ -4,46 +4,59 @@
 // GENERAL
 
 // Site URL (no trailing slash)
-define('siteURL', 'https://y-link.ml');
+if(!defined('siteURL'))
+    define('siteURL', 'https://y-link.ml');
 
 // Page title for your site
-define('title', 'Yehuda Link | קיצור קישורים'); 
+if(!defined('title'))
+    define('title', 'Yehuda Link | קיצור קישורים'); 
 
 // The short title of your site, used in the footer and in some sub pages
-define('shortTitle', '<a href="https://yehudae.ga">Yehuda Eisenberg</a>');
+if(!defined('shortTitle'))
+    define('shortTitle', '<a href="https://yehudae.net">Yehuda Eisenberg</a>');
 
 // A description of your site, meta tag.
-define('description', 'y-link.ml - האתר הרשמי לקיצור קישורים מאת יהודה אייזנברג'); 
+if(!defined('description'))
+    define('description', 'y-link.ml - האתר הרשמי לקיצור קישורים מאת יהודה אייזנברג'); 
 
 // A description of your site, shown on the homepage.
-define('HelloText', 'Welcome! <br>new design!'); 
+if(!defined('HelloText'))
+    define('HelloText', 'Welcome! <br>new design!'); 
 
 // The favicon for your site
-define('favicon', '/include/assets/img/logo.png');
+if(!defined('favicon'))
+    define('favicon', '/include/assets/img/logo.png');
 
 // Logo for your site, displayed on home page
-define('logo', '/include/assets/img/logo.png');
+if(!defined('logo'))
+    define('logo', '/include/assets/img/logo.png');
 
 // Enables the custom URL field
 // true or false
-define('enableCustomURL', true);
+if(!defined('enableCustomURL'))
+    define('enableCustomURL', true);
 
-define('DataBase', array(
+if(!defined('DataBase'))
+    define('DataBase', array(
     "ServerName" => "localhost",
     "Username" => "root",
     "Password" => "",
     "DBName" => "link"
 ));
-define('USE_TOKEN', false);
-define('LINK_REGEX', '/^[a-zA-Z0-9\x{0590}-\x{05fe}_.\s\-]+$/u');
+if(!defined('USE_TOKEN'))
+    define('USE_TOKEN', false);
+if(!defined('LINK_REGEX'))
+    define('LINK_REGEX', '/^[a-zA-Z0-9\x{0590}-\x{05fe}_.\s\-]+$/u');
 
-define('SITE_DOMAIN', preg_replace("(^https?://)", "", siteURL));
+if(!defined('SITE_DOMAIN'))
+    define('SITE_DOMAIN', preg_replace("(^https?://)", "", siteURL));
 
 // Optional
-// Set a primary colour to be used. Default: #007bff
-// Here are some other colours you could try:
+// Set a primary color to be used. Default: #007bff
+// Here are some other colors you could try:
 // #f44336: red, #9c27b0: purple, #00bcd4: teal, #ff5722: orange
-define('colour', '#007bff');
+if(!defined('color'))
+    define('color', '#007bff');
 
 // Optional
 // Set a background image to be used.
