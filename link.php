@@ -1,54 +1,49 @@
 <?php
 
-    include("include/config.php");
+/**
+ * router file
+ *
+ * @package    Y-Link
+ * @copyright  Copyright (c) 2018-2020 Yehuda Eisenberg (https://YehudaE.net)
+ * @author     Yehuda Eisenberg
+ * @license    AGPL-3.0
+ * @version    2.0
+ * @link       https://github.com/YehudaEi/Y-Link
+ */
 
-    header("Cache-Control: no-cache");
-    header("Cache-Control: no-store");
-    
-    $uri = urldecode(substr($_SERVER['REDIRECT_URL'], 1));
+include("include/init.php");
 
-    if(substr($_SERVER['REDIRECT_URL'], -1) == "+"){
-        $getData = true;
-        $uri = substr($uri, 0, -1);
-    }
+header("Cache-Control: no-cache");
+header("Content-Type: text/html; charset=utf-8");
+header("Cache-Control: no-store");
 
-    if(isset($uri) && preg_match(LINK_REGEX, $uri)){
-        $conn = new mysqli(DataBase['ServerName'], DataBase['Username'], DataBase['Password'], DataBase['DBName']); 
-        mysqli_set_charset($conn, "utf8mb4");
-        if ($conn->connect_error) { 
-            http_response_code(500);
-            include 'apache-errors/500.html';
-            die(); 
-        }
-        $sql = "SELECT `counter`,`link`,`id` FROM `Link` WHERE `id` = \"".$uri."\" AND `Link`.`deleted` = FALSE"; 
-        $res = $conn->query($sql); 
-        if (!empty($res) && $res->num_rows > 0) {
-            while ($row = $res->fetch_assoc()) {
-                if($row['id'] == $uri)
-                {
-                    $link = $row["link"]; 
-                    $count = $row["counter"]; 
-                    break;
-                }
-            }
-        }
+$uri = str_replace(parse_url(SITE_URL)['path'] ?? "", "", $_SERVER['REDIRECT_URL']);
+
+$uri = urldecode(substr($uri, 1));
+
+if(substr($_SERVER['REDIRECT_URL'], -1) == "+"){
+    $getData = true;
+    $uri = substr($uri, 0, -1);
+    die("In Building");
+}
+
+if(isset($uri) && preg_match(PATH_REGEX, $uri)){
+    $longLink = getLongLink($uri);
+}
+if(isset($longLink) && !empty($longLink)){
+    addVisitor($uri);
+    if(isset($getData) && $getData){
+        echo "in building";
     }
-    if(isset($link) && !empty($link)){
-        if(isset($getData) && $getData){
-            include 'getData.php';
-        }
-        else{
-            header("Location: ".urldecode($link));
-            echo "error in moving you to <a href=\"".urldecode($link)."\" rel=\"noreferrer nofollow\">this link</a>. You can click <a href=\"".urldecode($link)."\" rel=\"noreferrer nofollow\">here</a>";
-        }
-        
-        $sql = "UPDATE `Link` SET `counter` = ".($count + 1)." WHERE `Link`.`id` = '".$uri."'";
-        $conn->query($sql);
-    }else{
-        http_response_code(404);
-        include 'apache-errors/404.html';
+    else{
+        header("Location: " . $longLink);
+        echo "error in moving you to <a href=\"".rawurlencode($longLink)."\" rel=\"noreferrer nofollow\">this link</a>. You can click <a href=\"".rawurlencode($longLink)."\" rel=\"noreferrer nofollow\">here</a>";
     }
-    
-    if(isset($conn))
-        $conn->close();
+}else{
+    http_response_code(404);
+    include 'apache-errors/404.html';
+}
+
+$DBConn->close();
+
 ?>

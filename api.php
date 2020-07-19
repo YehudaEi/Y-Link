@@ -1,386 +1,208 @@
 <?php
-include('include/config.php');
 
-header('Content-Type: application/json; charset=utf-8');
-header("Cache-Control: no-cache");
-header("Cache-Control: no-store");
-date_default_timezone_set('Asia/Jerusalem');
+/**
+ * The api
+ *
+ * @package    Y-Link
+ * @copyright  Copyright (c) 2018-2020 Yehuda Eisenberg (https://YehudaE.net)
+ * @author     Yehuda Eisenberg
+ * @license    MIT
+ * @version    AGPL-3.0
+ * @link       https://github.com/YehudaEi/Y-Link
+ */
 
-function rnd($len = 6) {
-    $alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
-    $pass = array(); 
-    $alphaLength = strlen($alphabet) - 1; 
-    for ($i = 0; $i < $len; $i++) {
-        $n = rand(0, $alphaLength);
-        $pass[] = $alphabet[$n];
-    }
-    return implode($pass); 
-}
-function LinkTool($link, $pass, $mode, $helperArg = null){ 
-    
-    $tablename = "`Link`"; 
-    // Create connection 
-    $conn = new mysqli(DataBase['ServerName'], DataBase['Username'], DataBase['Password'], DataBase['DBName']); 
-    mysqli_set_charset($conn, "utf8mb4");
-    // Check connection 
-    if ($conn->connect_error) {die(json_encode(array('ok' => false, "error" => "db error! (connection)"), TRUE));}  
-
-    if($mode == "rand"){
-        $randTemp = rnd();
-        $bool = 0;
-        while(true){
-            $sql = "SELECT * FROM $tablename"; 
-            $temp = $conn->query($sql); 
-            while ($row = $temp->fetch_assoc())
-                if($row['id'] && $randTemp == $row['id']) {
-                    $randTemp = rnd();
-                    $bool = 1;
-                }
-            if($bool == 1)
-                $randTemp = rnd();
-            else
-                break;
-        }
-        return $randTemp;
-    }
-    elseif($mode == "get_click" && parse_url($link, PHP_URL_HOST) == SITE_DOMAIN){
-        $linkId = substr(parse_url($link)['path'],1);
-        if(preg_match(LINK_REGEX, $linkId)){
-            $sql = "SELECT `password` FROM `Link` WHERE `id` = '".$linkId."'"; 
-            $temp = $conn->query($sql);
-            $LinkPass =  $temp->fetch_assoc()["password"];
-            if($LinkPass == $pass){
-                $sql = "SELECT `counter` FROM `Link` WHERE `id` = '".$linkId."'"; 
-                $tmp = $conn->query($sql);
-                $conn->close();
-                if($tmp->num_rows > 0){
-                    $res = $tmp->fetch_assoc();
-                    return $res['counter'];
-                }
-                else
-                    die(json_encode(array('ok' => false, "error" => "the link not exist"), TRUE));
-            }
-            die(json_encode(array('ok' => false, "error" => "Bad Request: Worng Password"), TRUE));
-        }
-        die(json_encode(array('ok' => false, "error" => "db error! (invalid link)"), TRUE));
-    }
-    elseif($mode == "link_exist"){
-        $linkId = substr(parse_url($link)['path'],1);
-        $linkId = $conn->real_escape_string($linkId);
-        $sql = "SELECT `password` FROM `Link` WHERE `id` = '".$linkId."'"; 
-        $temp = $conn->query($sql);
-        if($temp->num_rows > 0){
-            $LinkPass = $temp->fetch_assoc()["password"];
-            if($LinkPass == $pass){
-                return "creator";
-            }
-            else
-                return "not creator";
-        }
-        return "not exist";
-    }
-    elseif($mode == "update_link" || parse_url($helperArg, PHP_URL_HOST) == SITE_DOMAIN){
-        $linkId = substr(parse_url($helperArg)['path'],1);
-        $linkId = $conn->real_escape_string($linkId);
-        if(preg_match(LINK_REGEX, $linkId)){
-            $sql = "SELECT `password` FROM `Link` WHERE `id` = '".$linkId."'"; 
-            $temp = $conn->query($sql);
-            $LinkPass =  $temp->fetch_assoc()["password"];
-            if($LinkPass == $pass){
-                $sql = "UPDATE $tablename SET `link` = '".$link."' WHERE `link`.`id` = '".$linkId."';"; 
-                if ($conn->query($sql) === TRUE){return siteURL."/".$linkId;} else{die(json_encode(array('ok' => false, "error" => "db error! (update)"), TRUE));}
-            }
-            else
-                die(json_encode(array('ok' => false, "error" => "Bad Request: Worng Password"), TRUE));
-        }
-        else
-            die(json_encode(array('ok' => false, "error" => "db error! (invalid link)"), TRUE));
-    }
-    elseif($mode == "create_custom"){
-        $sql = "SELECT * FROM $tablename"; 
-        $temp = $conn->query($sql); 
-        while ($row = $temp->fetch_assoc()){ 
-            if($row['link'] && strtolower($link) == strtolower(urldecode($row['link'])) && $row['password'] == $pass) { 
-                $conn->close(); 
-                return siteURL."/".$row['id']; 
-            } 
-        }
-        
-        $link = $conn->real_escape_string($link);
-        if(LinkTool(siteURL."/".$helperArg , $pass, "link_exist") == "not exist"){
-            $sql = "INSERT INTO $tablename (`link`, `id`, `counter`, `password`, `deleted`) VALUES ('".urlencode(urldecode($link))."','".$helperArg."', '0' ,'".$pass."', 0);"; 
-        }
-        else{
-            $helperArg = LinkTool(0, $link, "rand");
-            $sql = "INSERT INTO $tablename (`link`, `id`, `counter`, `password`, `deleted`) VALUES ('".urlencode(urldecode($link))."','".$helperArg."', '0' ,'".$pass."', 0);"; 
-        }
-        if ($conn->query($sql) === TRUE){} else{die(json_encode(array('ok' => false, "error" => "db error! (insert)"), TRUE));}
-        $conn->close(); 
-        return siteURL."/".$helperArg;
-    }
-    elseif($mode == "create"){
-        $sql = "SELECT * FROM $tablename"; 
-        $temp = $conn->query($sql); 
-        while ($row = $temp->fetch_assoc()){ 
-            if($row['link'] && strtolower($link) == strtolower(urldecode($row['link'])) && $row['password'] == $pass) { 
-                $conn->close();
-                return siteURL."/".$row['id'];
-            } 
-        }
-        
-        $link = $conn->real_escape_string($link);
-        
-        $rand = LinkTool(0, $link, "rand");
-        $sql = "INSERT INTO $tablename (`link`, `id`, `counter`, `password`, `deleted`) VALUES ('".urlencode(urldecode($link))."','".$rand."', '0' ,'".$pass."', 0);"; 
-        if ($conn->query($sql) === TRUE){} else{die(json_encode(array('ok' => false, "error" => "db error! (insert)"), TRUE));}
-        $conn->close(); 
-        return siteURL."/".$rand;
-    }
-}
-function validLink($link, $type = false){
-    if($type){
-        if(!(parse_url($link, PHP_URL_SCHEME) && parse_url($link, PHP_URL_HOST)) && !(parse_url("http://".$link, PHP_URL_SCHEME) && parse_url("http://".$link, PHP_URL_HOST)))
-            return false;
-        if(parse_url($link, PHP_URL_SCHEME) && parse_url($link, PHP_URL_HOST))
-            return "without";
-        if(parse_url("http://".$link, PHP_URL_SCHEME) && parse_url("http://".$link, PHP_URL_HOST))
-            return "with";
-    }
-    if(!(parse_url($link, PHP_URL_SCHEME) && parse_url($link, PHP_URL_HOST)) && !(parse_url("http://".$link, PHP_URL_SCHEME) && parse_url("http://".$link, PHP_URL_HOST)))
-        return false;
-    if(strpos(parse_url($link, PHP_URL_HOST), "="))
-        return false;
-    
-    return true;
-}
+require_once('include/init.php');
 
 $res = array();
-$methods = array('create', 'get_click', 'custom', 'edit_link', 'help');
-$tokens = array("Yehuda132", "eliko246", "yonibee!", "eitan_g");
 
-if(!isset($_GET) || count($_GET) == 0 || !in_array($_GET['method'], $methods)){
-    $res['ok'] = false;
-    $res["error"] = 'Method not found. see ?method=help';
-}
-elseif(!isset($_GET['password']) && $_GET['method'] != "help"){
-    $res['ok'] = false;
-    $res["error"] = 'Bad Request: \'password\' is empty';
-}
-elseif((isset($_GET['password']) && (!preg_match(LINK_REGEX, $_GET['password']) || strlen($_GET['password']) == 0 || strlen($_GET['password']) > 20)) && $_GET['method'] != "help"){
-    $res['ok'] = false;
-    $res["error"] = 'Bad Request: \'password\' is invalid';
-}
+$validParams = array(
+    "method" => array(
+        "type" => "string",
+        "validLength" => "4...6",
+        "description" => "the method (create, info, custom, edit, help)",
+    ),
+    "link" => array(
+        "type" => "url",
+        "description" => "the long link",
+    ),
+    "password" => array(
+        "type" => "string",
+        "validLength" => "4...30",
+        "description" => "Creator verification",
+    ),
+    "path" => array(
+        "type" => "string",
+        "validLength" => "4...30",
+        "description" => "shortened link path: " . SITE_URL . "/{path}",
+    ),
+    "shorten_link" => array(
+        "type" => "url",
+        "validLength" => (strlen(SITE_URL) + 4) . "..." . (strlen(SITE_URL) + 30),
+        "description" => SITE_URL . " shortened link",
+    )
+);
 
+$methods = array(
+    'create' => array(
+        "description" => "to create new shorten link",
+        "http_method" => "post",
+        "paramaters" => array(
+            "method" => $validParams['method'],
+            "password" => $validParams['password'],
+            "link" => $validParams['link']
+        )
+    ),
+    'info' => array(
+        "description" => "to get info of shorten link",
+        "http_method" => "post",
+        "paramaters" => array(
+            "method" => $validParams['method'],
+            "password" => $validParams['password'],
+            "shorten_link" => $validParams['shorten_link']
+        )
+    ),
+    'custom' => array(
+        "description" => "to create new custom shorten link",
+        "http_method" => "post",
+        "paramaters" => array(
+            "method" => $validParams['method'],
+            "password" => $validParams['password'],
+            "link" => $validParams['link'],
+            "path" => $validParams['path']
+        )
+    ),
+    'edit' => array(
+        "description" => "Edit link destination",
+        "http_method" => "post",
+        "paramaters" => array(
+            "method" => $validParams['method'],
+            "password" => $validParams['password'],
+            "shorten_link" => $validParams['shorten_link'],
+            "link" => $validParams['link']
+        )
+    ),
+    'help' => array(
+        "description" => "receive help",
+        "http_method" => "post",
+        "paramaters" => array(
+            "method" => $validParams['method']
+        )
+    )
+);
+
+if(!isset($_POST) || count($_POST) == 0 || !isset($methods[$_POST['method']])){
+    $res['ok'] = false;
+    $res["error"]['code'] = 404;
+    $res["error"]['message'] = 'Method not found. try send post request method=help';
+    $res["error"]['docs'] = 'https://github.com/YehudaEi/Y-Link';
+}
 else{
-    switch ($_GET['method']) {
-        case 'create':{
-            if(!isset($_GET['link'])){
-                $res['ok'] = false;
-                $res["error"] = 'Bad Request: \'link\' is empty';
+    $params = $methods[$_POST['method']]['paramaters'];
+    foreach($params as $name => $tmp){
+        if(!isset($_POST[$name]) || empty($_POST[$name])){
+            $res['ok'] = false;
+            $res["error"]['code'] = 400;
+            $res["error"]['message'] = "Bad Request: \"{$name}\" is empty";
+            break;
+        }
+
+        if($name != "method" && !call_user_func("valid" . ucfirst($name), $_POST[$name])){
+            $res['ok'] = false;
+            $res["error"]['code'] = 400;
+            $res["error"]['message'] = "Bad Request: \"{$name}\" is invalid";
+            break;
+        }
+    }
+
+    if(count($res) == 0){
+        if($_POST['method'] == "create"){
+            $path = createLink($_POST['link'], $_POST['password']);
+            if(is_string($path)){
+                $res['ok'] = true;
+                $res['res']['password'] = $_POST['password'];
+                $res['res']['link'] = SITE_URL . '/' . $path;
             }
-            //elseif(!filter_var($_GET['link'], FILTER_VALIDATE_URL) && !filter_var("http://".$_GET['link'], FILTER_VALIDATE_URL)){
-            elseif(!validLink($_GET['link'])){
+            else{
                 $res['ok'] = false;
-                $res["error"] = 'Bad Request: \'link\' is invalid';
+                $res["error"]['code'] = 500;
+                $res["error"]['message'] = 'Server Error! description: ' . $path;
             }
-            elseif(validLink($_GET['link'], true) == "without"){
-                $link = LinkTool($_GET['link'], $_GET['password'], "create");
-                if($link){
+        }
+        elseif($_POST['method'] == "info"){
+            if(getLinkPass($_POST['shorten_link']) == $_POST['password']){
+                $res['ok'] = true;
+                $res['res']['long_link'] = getLongLink($_POST['shorten_link']);
+                $res['res']['count_clicks'] = countClicks($_POST['shorten_link']);
+            }
+            else{
+                $res['ok'] = false;
+                $res["error"]['code'] = 403;
+                $res["error"]['message'] = 'Forbidden';
+            }
+        }
+        elseif($_POST['method'] == "custom"){
+            if(!linkExistByPath($_POST['path']) && $_POST['path'] != "mainTable"){
+                $success = createCustomLink($_POST['link'], $_POST['path'], $_POST['password']);
+                if($success == true){
                     $res['ok'] = true;
-                    $res['res']['password'] = $_GET['password'];
-                    $res['res']['link'] = $link;
+                    $res['res']['password'] = $_POST['password'];
+                    $res['res']['link'] = SITE_URL . '/' . $_POST['path'];
                 }
                 else{
                     $res['ok'] = false;
-                    $res["error"] = 'Unknown Error!';
-                }
-            }
-            elseif(validLink($_GET['link'], true) == "with"){
-                $link = LinkTool("http://".$_GET['link'], $_GET['password'], "create");
-                if($link){
-                    $res['ok'] = true;
-                    $res['res']['password'] = $_GET['password'];
-                    $res['res']['link'] = $link;
-                }
-                else{
-                    $res['ok'] = false;
-                    $res["error"] = 'Unknown Error!';
+                    $res["error"]['code'] = 500;
+                    $res["error"]['message'] = 'Server Error! description: ' . $success;
                 }
             }
             else{
                 $res['ok'] = false;
-                $res["error"] = 'Unknown Error!';
+                $res["error"]['code'] = 400;
+                $res["error"]['message'] = 'Path already exist';
             }
-            }break;
-        case 'get_click':{
-            if(!isset($_GET['link'])){
-                $res['ok'] = false;
-                $res["error"] = 'Bad Request: \'link\' is empty';
-            }
-            elseif(!validLink($_GET['link'])){
-                $res['ok'] = false;
-                $res["error"] = 'Bad Request: \'link\' is invalid';
-            }
-            elseif(parse_url($_GET['link'], PHP_URL_HOST) == SITE_DOMAIN){
-                $tmp = LinkTool($_GET['link'], $_GET['password'], "link_exist");
-                if($tmp == "not exist"){
-                    $res['ok'] = false;
-                    $res["error"] = 'Bad Request: \'link\' not exist';
+        }
+        elseif($_POST['method'] == "edit"){
+            if(getLinkPass($_POST['shorten_link']) == $_POST['password']){
+                $success = editLongLink($_POST['link'], $_POST['shorten_link']);
+                if($success == true){
+                    $res['ok'] = true;
+                    $res['res']['password'] = $_POST['password'];
+                    $res['res']['link'] = $_POST['shorten_link'];
                 }
                 else{
-                    $res['ok'] = true;
-                    $res['res']['password'] = $_GET['password'];
-                    $res['res']['clicks'] = LinkTool($_GET['link'], $_GET['password'], "get_click");
+                    $res['ok'] = false;
+                    $res["error"]['code'] = 500;
+                    $res["error"]['message'] = 'Server Error! description: ' . $success;
                 }
             }
             else{
                 $res['ok'] = false;
-                $res["error"] = 'Bad Request: \'link\' is invalid';
+                $res["error"]['code'] = 403;
+                $res["error"]['message'] = 'Forbidden';
             }
-            }break;
-        case 'edit_link':{
-            if(!isset($_GET['link'])){
-                $res['ok'] = false;
-                $res["error"] = 'Bad Request: \'link\' is empty';
-            }
-            elseif(!isset($_GET['shorten_link'])){
-                $res['ok'] = false;
-                $res["error"] = 'Bad Request: \'shorten_link\' is empty';
-            }
-            elseif(!validLink($_GET['link'])){
-                $res['ok'] = false;
-                $res["error"] = 'Bad Request: \'link\' is invalid';
-            }
-            elseif(!validLink($_GET['shorten_link'])){
-                $res['ok'] = false;
-                $res["error"] = 'Bad Request: \'shorten_link\' is invalid';
-            }
-            elseif(parse_url($_GET['shorten_link'], PHP_URL_HOST) == SITE_DOMAIN){
-                $tmp = LinkTool($_GET['shorten_link'], $_GET['password'], "link_exist");
-                if($tmp == "not exist"){
-                    $res['ok'] = false;
-                    $res["error"] = 'Bad Request: \'shorten_link\' not exist';
-                }
-                elseif($tmp == "not creator"){
-                    $res['ok'] = false;
-                    $res["error"] = 'Bad Request: Worng Password';
-                }
-                else{
-                    $res['ok'] = true;
-                    $res['res']['password'] = $_GET['password'];
-                    $res['res']['new_link'] = $_GET['link'];
-                    $res['res']['link'] = LinkTool($_GET['link'], $_GET['password'], "update_link", $_GET['shorten_link']);
-                }
-            }
-            else{
-                $res['ok'] = false;
-                $res["error"] = 'Bad Request: \'link\' or \'shorten_link\' is invalid';
-            }
-            }break;
-        case 'custom':{
-            if(USE_TOKEN && !isset($_GET['token'])){
-                $res['ok'] = false;
-                $res["error"] = 'Bad Request: \'token\' is empty';
-            }
-            elseif(!isset($_GET['link'])){
-                $res['ok'] = false;
-                $res["error"] = 'Bad Request: \'link\' is empty';
-            }
-            elseif(!isset($_GET['path'])){
-                $res['ok'] = false;
-                $res["error"] = 'Bad Request: \'path\' is empty';
-            }
-            elseif(USE_TOKEN && !in_array($_GET['token'], $tokens)){
-                $res['ok'] = false;
-                $res["error"] = 'Bad Request: \'token\' is invalid';
-            }
-            elseif(!validLink($_GET['link'])){
-                $res['ok'] = false;
-                $res["error"] = 'Bad Request: \'link\' is invalid';
-            }
-            elseif(!preg_match(LINK_REGEX, $_GET['path']) || strlen($_GET['path']) > 30){
-                $res['ok'] = false;
-                $res["error"] = 'Bad Request: \'path\' is invalid';
-            }
-            elseif(validLink($_GET['link'], true) == "without"){
-                $link = LinkTool($_GET['link'], $_GET['password'], "create_custom", $_GET['path']);
-                if($link){
-                    $res['ok'] = true;
-                    $res['res']['password'] = $_GET['password'];
-                    $res['res']['link'] = $link;
-                }
-                else{
-                    $res['ok'] = false;
-                    $res["error"] = 'Unknown Error!';
-                }
-            }
-            elseif(validLink($_GET['link'], true) == "with"){
-                $link = LinkTool("http://".$_GET['link'], $_GET['password'], "create_custom", $_GET['path']);
-                if($link){
-                    $res['ok'] = true;
-                    $res['res']['password'] = $_GET['password'];
-                    $res['res']['link'] = $link;
-                }
-                else{
-                    $res['ok'] = false;
-                    $res["error"] = 'Unknown Error!';
-                }
-            }
-            else{
-                $res['ok'] = false;
-                $res["error"] = 'Unknown Error!';
-            }
-            }break;
-        case 'help':{
+        }
+        elseif($_POST['method'] == "help"){
             $res['owner']['name'] = "Yehuda Eisenberg";
             $res['owner']['mail'] = "yehuda.telegram@gmail.com";
-            //$res['owner']['support'] = "links@".SITE_DOMAIN;
+            $res['owner']['support'] = "links@".SITE_DOMAIN;
             $res['owner']['GitHub'] = "https://github.com/YehudaEi/Y-Link";
             $res['owner']['Telegram'] = "@YehudaEisenberg";
             
-            
-            $res['valid_methods']['create']['description']              = "to create new links";
-            $res['valid_methods']['create']['param']['method']          = "create";
-            $res['valid_methods']['create']['param']['password']        = "creator pass - to get num of clicks / edit the link";
-            $res['valid_methods']['create']['param']['link']            = "the link";
-            
-            $res['valid_methods']['get_click']['description']           = "to get num of clicks";
-            $res['valid_methods']['get_click']['param']['method']       = "get_click";
-            $res['valid_methods']['get_click']['param']['password']     = "Creator verification";
-            $res['valid_methods']['get_click']['param']['shorten_link'] = "the shortened link";
-            
-            $res['valid_methods']['edit_link']['description']           = "Edit link destination";
-            $res['valid_methods']['edit_link']['param']['method']       = "get_click";
-            $res['valid_methods']['edit_link']['param']['password']     = "Creator verification";
-            $res['valid_methods']['edit_link']['param']['shorten_link'] = "the shortened link";
-            $res['valid_methods']['edit_link']['param']['link']         = "the new link";
+            foreach($methods as $name => $method){
+                $res['valid_methods'][$name] = $method;
+            }
 
-            $res['valid_methods']['custom']['description']              = "custom shortened link";
-            $res['valid_methods']['custom']['param']['method']          = "custom";
-            $res['valid_methods']['custom']['param']['password']        = "Creator verification";
-            if(USE_TOKEN)
-                $res['valid_methods']['custom']['param']['token']           = "token..";
-            $res['valid_methods']['custom']['param']['path']            = "custom path link (e.g. ".SITE_DOMAIN."/path)";
-            $res['valid_methods']['custom']['param']['link']            = "the link";
-
-            $res['valid_methods']['help']['description']                = "receive help";
-            $res['valid_methods']['help']['param']['method']            = "help";
-
-            $res['variables']['method']['type']                         = "string";
-            $res['variables']['method']['description']                  = "The method..";
-            $res['variables']['password']['type']                       = "string (Up to 20)";
-            $res['variables']['password']['description']                = "creator pass - to get num of clicks / edit the link";
-            $res['variables']['link']['type']                           = "valid link (string)";
-            $res['variables']['link']['description']                    = "The Link...";
-            $res['variables']['path']['type']                           = "string (Up to 20)";
-            $res['variables']['path']['description']                    = "shortened link path: ".SITE_DOMAIN."/path";
-            $res['variables']['shorten_link']['type']                   = SITE_DOMAIN." link (string)";
-            $res['variables']['shorten_link']['description']            = "api output shortened link";
-            }break;
-        default:
+            foreach($validParams as $name => $param){
+                $res['valid_paramaters'][$name] = $param;
+            }
+        }
+        else {
             $res['ok'] = false;
-            $res["error"] = 'Method not found';
-            break;
+            $res["error"]['code'] = 500;
+            $res["error"]['message'] = 'Server Error! please try again later';
+        }
     }
 }
+
 echo json_encode($res, true);
+
+$DBConn->close();
