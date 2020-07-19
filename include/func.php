@@ -33,7 +33,12 @@ function linkExistByPath($path){
     global $DBConn;
     
     $res = $DBConn->query('SELECT * FROM `mainTable` WHERE `path` = "'.cleanString($path).'";');
-    return $res->num_rows > 0 ? true : false;
+    while($row = $res->fetch_assoc()){
+        if($row['path'] == $path)
+            return true;
+    }
+    
+    return false;
 }
 
 /**
@@ -277,6 +282,6 @@ function addVisitor($path){
     $lang = cleanString($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? "");
     $referrer = cleanString($_SERVER["HTTP_REFERER"] ?? "");
     $stmt->execute();
-        
+    
     $stmt->close();
 }
