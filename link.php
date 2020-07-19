@@ -24,7 +24,6 @@ $uri = urldecode(substr($uri, 1));
 if(substr($_SERVER['REDIRECT_URL'], -1) == "+"){
     $getData = true;
     $uri = substr($uri, 0, -1);
-    die("In Building");
 }
 
 if(isset($uri) && preg_match(PATH_REGEX, $uri)){

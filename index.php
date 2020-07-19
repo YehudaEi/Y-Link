@@ -1,5 +1,16 @@
 <?php
 
+/**
+ * The Index file (UI)
+ *
+ * @package    Y-Link
+ * @copyright  Copyright (c) 2018-2020 Yehuda Eisenberg (https://YehudaE.net)
+ * @author     Yehuda Eisenberg
+ * @license    AGPL-3.0
+ * @version    2.0
+ * @link       https://github.com/YehudaEi/Y-Link
+ */
+
 require_once(__DIR__ . "/YLinkClient.php");
 
 if(isset($_POST['url'])){
@@ -42,7 +53,7 @@ if(isset($_POST['url'])){
                         <a class="nav-link text-light" href="/">Home</a>
                     </li>
                     <li class="nav-item active">
-                        <a class="nav-link text-light" href="https://YehudaEi.github.com/Y-Link">Docs</a>
+                        <a class="nav-link text-light" href="https://YehudaEi.github.io/Y-Link">Docs</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link text-light" href="https://github.com/YehudaEi/Y-Link">GitHub</a>

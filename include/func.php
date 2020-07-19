@@ -204,8 +204,13 @@ function getLongLink($link){
     if(!linkExistByPath($path))
         return false;
 
-    $res = $DBConn->query('SELECT `link` FROM `mainTable` WHERE `path` = "'.cleanString($path).'";');
-    return $res->fetch_array()['link'] ?? false;
+    $res = $DBConn->query('SELECT * FROM `mainTable` WHERE `path` = "'.cleanString($path).'";');
+    while($row = $res->fetch_assoc()){
+        if($row['path'] == $path)
+            return $row['link'];
+    }
+    
+    return false;
 }
 
 /**
@@ -272,8 +277,6 @@ function addVisitor($path){
     $lang = cleanString($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? "");
     $referrer = cleanString($_SERVER["HTTP_REFERER"] ?? "");
     $stmt->execute();
-    
-    var_dump($DBConn->error);
-    
+        
     $stmt->close();
 }
