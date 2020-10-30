@@ -17,11 +17,11 @@ header("Cache-Control: no-cache");
 header("Content-Type: text/html; charset=utf-8");
 header("Cache-Control: no-store");
 
-$uri = str_replace(parse_url(SITE_URL)['path'] ?? "", "", $_SERVER['REDIRECT_URL']);
+$uri = str_replace(parse_url(SITE_URL)['path'] ?? "", "", $_SERVER['REQUEST_URI']);
 
 $uri = urldecode(substr($uri, 1));
 
-if(substr($_SERVER['REDIRECT_URL'], -1) == "+"){
+if(substr($_SERVER['REQUEST_URI'], -1) == "+"){
     $getData = true;
     $uri = substr($uri, 0, -1);
 }
@@ -40,7 +40,7 @@ if(isset($longLink) && !empty($longLink)){
     }
 }else{
     http_response_code(404);
-    include 'apache-errors/404.html';
+    include 'error-pages/404.html';
 }
 
 $DBConn->close();

@@ -18,7 +18,7 @@ class Ylink{
      * 
      * @var string the server url.
      */
-    private static $serverUrl = "https://y-link.ml/";
+    private static $serverUrl = "http://y-link.ml/";
 
     /**
      * the admin password.
