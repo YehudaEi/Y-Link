@@ -32,7 +32,7 @@ function cleanString($str){
 function linkExistByPath($path){
     global $DBConn;
     
-    $res = $DBConn->query('SELECT * FROM `mainTable` WHERE `path` = "'.cleanString($path).'";');
+    $res = $DBConn->query('SELECT `path` FROM `mainTable` WHERE `path` = "'.cleanString($path).'";');
     while($row = $res->fetch_assoc()){
         if($row['path'] == $path)
             return true;
@@ -148,16 +148,6 @@ function createLink($link, $password){
            "(NULL, '" . $path . "', '" . cleanString($link) . "', '" . cleanString($password) . "', 0);";
     $DBConn->query($sql);
 
-    $sql = "CREATE TABLE IF NOT EXISTS `" . DB['dbname'] . "`.`" . $path . "` ( 
-        `id` INT NOT NULL AUTO_INCREMENT , 
-        `ip` TEXT NOT NULL , 
-        `user_agent` TEXT NOT NULL , 
-        `language` TEXT NOT NULL , 
-        `referrer` TEXT NOT NULL , 
-        `time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP , 
-    PRIMARY KEY (`id`)) ENGINE = InnoDB CHARSET = utf8mb4 COLLATE utf8mb4_general_ci;";
-    $DBConn->query($sql);
-
     return $path;
 }
 
@@ -191,9 +181,9 @@ function countClicks($link){
     if(!linkExistByPath($path))
         return false;
 
-    $res = $DBConn->query('SELECT COUNT(*) FROM `' . DB['dbname'] . '`.`'.cleanString($path).'`;');
+    $res = $DBConn->query('SELECT `id` FROM `clicks` WHERE `path` = "'.cleanString($path).'";');
 
-    return $res->fetch_array()["COUNT(*)"] ?? false;
+    return $res->num_rows ?? false;
 }
 
 /**
@@ -209,7 +199,7 @@ function getLongLink($link){
     if(!linkExistByPath($path))
         return false;
 
-    $res = $DBConn->query('SELECT * FROM `mainTable` WHERE `path` = "'.cleanString($path).'";');
+    $res = $DBConn->query('SELECT `path`,`link` FROM `mainTable` WHERE `path` = "'.cleanString($path).'";');
     while($row = $res->fetch_assoc()){
         if($row['path'] == $path)
             return $row['link'];
@@ -231,16 +221,6 @@ function createCustomLink($link, $path, $password){
 
     $sql = "INSERT INTO `mainTable` (`id`, `path`, `link`, `password`, `deleted`) VALUES " .
            "(NULL, '" . cleanString($path) . "', '" . cleanString($link) . "', '" . cleanString($password) . "', 0);";
-    $DBConn->query($sql);
-
-    $sql = "CREATE TABLE `" . DB['dbname'] . "`.`" . cleanString($path) . "` ( 
-        `id` INT NOT NULL AUTO_INCREMENT , 
-        `ip` TEXT NOT NULL , 
-        `user_agent` TEXT NOT NULL , 
-        `language` TEXT NOT NULL , 
-        `referrer` TEXT NOT NULL , 
-        `time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP , 
-    PRIMARY KEY (`id`)) ENGINE = InnoDB CHARSET = utf8mb4 COLLATE utf8mb4_general_ci;";
     $DBConn->query($sql);
 
     return $path;
@@ -275,8 +255,9 @@ function addVisitor($path){
     if(!linkExistByPath($path))
         return;
 
-    $stmt = $DBConn->prepare("INSERT INTO `" . DB['dbname'] . "`.`" . cleanString($path) . "` (id, ip, user_agent, language, referrer, time) VALUES (NULL, ?, ?, ?, ?, CURRENT_TIMESTAMP)");
-    $stmt->bind_param("ssss", $ip, $agent, $lang, $referrer);
+    $stmt = $DBConn->prepare("INSERT INTO `clicks` (id, path, ip, user_agent, language, referrer, time) VALUES (NULL, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)");
+    $stmt->bind_param("sssss", $path, $ip, $agent, $lang, $referrer);
+    $path = cleanString($path);
     $ip = cleanString($_SERVER['REMOTE_ADDR'] ?? "");
     $agent = cleanString($_SERVER['HTTP_USER_AGENT'] ?? "");
     $lang = cleanString($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? "");
