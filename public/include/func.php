@@ -48,6 +48,8 @@ function linkExistByPath($path){
  * @return bool link valid or invalid
  */
 function validLink($link){
+    if(preg_match("/magnet:\?xt=urn:[a-z0-9]+:[a-z0-9]{32}/i", $link))
+        return true;
     if(!(parse_url($link, PHP_URL_SCHEME) && parse_url($link, PHP_URL_HOST)))
         return false;
     if(strpos(parse_url($link, PHP_URL_HOST), "="))
