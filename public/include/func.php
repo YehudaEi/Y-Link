@@ -189,6 +189,112 @@ function countClicks($link){
 }
 
 /**
+ * info click of shorten link
+ * 
+ * @param string $link shorten link
+ * @return array info of clicks
+ */
+function getAllClickOfLink($link){
+    global $DBConn;
+    
+    $path = trim(str_replace(SITE_URL . "/", "", $link));
+    if(!linkExistByPath($path))
+        return false;
+
+    $res = $DBConn->query('SELECT `user_agent`,`language`,`referrer`,`time` FROM `clicks` WHERE `path` = "'.cleanString($path).'";');
+
+    return $res->fetch_all(MYSQLI_ASSOC) ?? false;
+}
+
+/**
+ * get stats of link clicks
+ * 
+ * @param string $link shorten link
+ * @return array stats of clicks
+ */
+function getStatsOfLink($link){
+    $data = getAllClickOfLink($link);
+    if($data == false)
+        return false;
+    
+    $browsers = array(
+        "chrome" => 0,
+        "firefox" => 0,
+        "edge" => 0,
+        "IE" => 0,
+        "opera" => 0,
+        "safari" => 0,
+        "samsung internet" => 0,
+        "miui browser" => 0,
+        "other" => 0
+    );
+    $devices = array(
+        "desktop" => 0,
+        "tablet" => 0,
+        "mobile" => 0,
+        "other" => 0
+    );
+    $oss = array(
+        "windows" => 0,
+        "android" => 0,
+        "ios" => 0,
+        "linux" => 0,
+        "macos" => 0,
+        "kaios" => 0,
+        "other" => 0
+    );
+    $referrals = array(
+        "direct" => 0,
+        "other" => 0
+    );
+
+    foreach($data as $click){
+        $tmpBrowser = new WhichBrowser\Parser($click['user_agent']);
+        $tmpReferrer = parse_url($click['referrer'], PHP_URL_HOST);
+
+        $browser = strtolower($tmpBrowser->browser->name);
+        $device = strtolower($tmpBrowser->device->type);
+        $os = strtolower($tmpBrowser->os->name);
+
+        if ($browser == "internet explorer") $browser = "IE";
+        if ($os == "ubuntu") $os = "linux";
+        if ($os == "os x") $os = "macos";
+
+        if(isset($browsers[$browser]))
+            $browsers[$browser]++;
+        else
+            $browsers['other']++;
+        
+        if(isset($devices[$device]))
+            $devices[$device]++;
+        else
+            $devices['other']++;
+
+        if(isset($oss[$os]))
+            $oss[$os]++;
+        else
+            $oss['other']++;
+
+        if($tmpReferrer){
+            $referrals[$tmpReferrer] = isset($referrals[$tmpReferrer]) ? $referrals[$tmpReferrer] + 1 : 1;
+        }
+        else{
+            if(strlen($click['referrer']) == 0)
+                $referrals['direct']++;
+            else
+                $referrals['other']++;
+        }
+    }
+
+    return array(
+        "browser" => $browsers,
+        "device" => $devices,
+        "os" => $oss,
+        "referral" => $referrals
+    );
+}
+
+/**
  * get long link by shorten link
  * 
  * @param string $link shorten link

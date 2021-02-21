@@ -18,7 +18,7 @@ class Ylink{
      * 
      * @var string the server url.
      */
-    private static $serverUrl = "http://y-link.ml/";
+    private static $serverUrl = "https://y-link.ml/";
 
     /**
      * the admin password.
@@ -148,6 +148,24 @@ class Ylink{
     public function LinkInfo($path){
         $data = array(
             "method" => "info",
+            "password" => $this->password,
+            "shorten_link" => self::$serverUrl . $path
+        );
+
+        $res = $this->Request($data);
+
+        return $res;
+    }
+    
+    /**
+     * get stats about shorten link clicks
+     * 
+     * @param string $path sortened url path.
+     * @return array result from the server.
+     */
+    public function LinkStats($path){
+        $data = array(
+            "method" => "stats",
             "password" => $this->password,
             "shorten_link" => self::$serverUrl . $path
         );

@@ -24,5 +24,6 @@ require_once('config.php');
 $DBConn = new mysqli(DB['host'], DB['username'], DB['password'], DB['dbname']);
 mysqli_set_charset($DBConn, "utf8mb4");
 
+require_once("Parser-PHP-2.1.1/bootstrap.php");
 require_once('func.php');
 

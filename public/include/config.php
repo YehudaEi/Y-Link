@@ -21,4 +21,4 @@ define('SITE_URL', (HTTPS ? "https" : "http")  . '://' . SITE_DOMAIN);
 
 define('PATH_REGEX', '/^[a-zA-Z0-9\x{0590}-\x{05fe}_.\s\-]+$/u');
 
-
+define('DEFUALT_PASSWORD', "DefaultPasswords");

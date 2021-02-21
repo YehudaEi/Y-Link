@@ -29,14 +29,14 @@ if(substr($_SERVER['REQUEST_URI'], -1) == "+"){
 if(isset($uri) && preg_match(PATH_REGEX, $uri)){
     $longLink = getLongLink($uri);
 }
-if(isset($longLink) && !empty($longLink)){
-    addVisitor($uri);
+if(isset($longLink) && !empty($longLink)){        
     if(isset($getData) && $getData){
-        echo "in building";
+        include('stats.php');
     }
     else{
+        addVisitor($uri);
         header("Location: " . $longLink);
-        echo "error in moving you to <a href=\"".rawurlencode($longLink)."\" rel=\"noreferrer nofollow\">this link</a>. You can click <a href=\"".rawurlencode($longLink)."\" rel=\"noreferrer nofollow\">here</a>";
+        echo "error in moving you to <a href=\"".htmlspecialchars($longLink)."\" rel=\"noreferrer nofollow\">this link</a>. You can click <a href=\"".htmlspecialchars($longLink)."\" rel=\"noreferrer nofollow\">here</a>";
     }
 }else{
     http_response_code(404);

@@ -4,8 +4,6 @@ URL Shortener writen in pure PHP.
 
 **[WebSite](https://y-link.ml)**
 
-**Docs coming soon 😎**
-
 ## Installation
 
 1. Clone the project
@@ -44,6 +42,144 @@ $ git clone https://github.com/YehudaEi/Y-Link
     4. go to 9.
 
 9. Done! Enjoy 😁
+
+## API Docs
+### Methods:
+1. **create**
+	1. Description: `Create new shorten link`
+	2. HTTP Method: `POST`
+	3. Paramaters: 
+		1. method:
+			1. type: `string`
+			2. validLength: `4...6`
+			3. description: `the method (e.g. create, info, help...)`
+		2. password:
+			1. type: `string`
+			2. validLength: `4...30`
+			3. description: `Creator verification`
+		3. link:
+			1. type: `url`
+			2. description: `the long link`
+
+2. **info**
+	1. Description: `Get info of shorten link`
+	2. HTTP Method: `POST`
+	3. Paramaters: 
+		1. method:
+			1. type: `string`
+			2. validLength: `4...6`
+			3. description: `the method (e.g. create, info, help...)`
+		2. password:
+			1. type: `string`
+			2. validLength: `4...30`
+			3. description: `Creator verification`
+		3. shorten_link:
+			1. type: `url`
+			2. validLength: `21...47`
+			3. description: `https://y-link.ml shortened link`
+
+3. **stats**
+	1. Description: `Get stats of shorten link`
+	2. HTTP Method: `POST`
+	3. Paramaters: 
+		1. method:
+			1. type: `string`
+			2. validLength: `4...6`
+			3. description: `the method (e.g. create, info, help...)`
+		2. password:
+			1. type: `string`
+			2. validLength: `4...30`
+			3. description: `Creator verification`
+		3. shorten_link:
+			1. type: `url`
+			2. validLength: `21...47`
+			3. description: `https://y-link.ml shortened link`
+
+4. **raw_stats**
+	1. Description: `Get raw stats of shorten link`
+	2. HTTP Method: `POST`
+	3. Paramaters: 
+		1. method:
+			1. type: `string`
+			2. validLength: `4...6`
+			3. description: `the method (e.g. create, info, help...)`
+		2. password:
+			1. type: `string`
+			2. validLength: `4...30`
+			3. description: `Creator verification`
+		3. shorten_link:
+			1. type: `url`
+			2. validLength: `21...47`
+			3. description: `https://y-link.ml shortened link`
+
+5. **custom**
+	1. Description: `Create new custom shorten link`
+	2. HTTP Method: `POST`
+	3. Paramaters: 
+		1. method:
+			1. type: `string`
+			2. validLength: `4...6`
+			3. description: `the method (e.g. create, info, help...)`
+		2. password:
+			1. type: `string`
+			2. validLength: `4...30`
+			3. description: `Creator verification`
+		3. link:
+			1. type: `url`
+			2. description: `the long link`
+		4. path:
+			1. type: `string`
+			2. validLength: `4...30`
+			3. description: `shortened link path: https://y-link.ml/{path}`
+
+6. **edit**
+	1. Description: `Edit link destination`
+	2. HTTP Method: `POST`
+	3. Paramaters: 
+		1. method:
+			1. type: `string`
+			2. validLength: `4...6`
+			3. description: `the method (e.g. create, info, help...)`
+		2. password:
+			1. type: `string`
+			2. validLength: `4...30`
+			3. description: `Creator verification`
+		3. shorten_link:
+			1. type: `url`
+			2. validLength: `21...47`
+			3. description: `https://y-link.ml shortened link`
+		4. link:
+			1. type: `url`
+			2. description: `the long link`
+
+7. **help**
+	1. Description: `Receive help`
+	2. HTTP Method: `POST`
+	3. Paramaters: 
+		1. method:
+			1. type: `string`
+			2. validLength: `4...6`
+			3. description: `the method (e.g. create, info, help...)`
+
+### API Client
+Example:
+```php
+<?php
+include 'YLinkClient.php';
+
+$url = "https://yehudae.net/Home/";
+$path = "custom_path";
+
+$client = new YLink("Hello World ~ Password");
+$res = $client->CreateLink($url, $path);
+
+if ($res['ok'] == true){
+	echo $res['res']['link'];
+}
+else{
+	echo $res['error']['message'];
+}
+```
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.

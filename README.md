@@ -4,6 +4,8 @@ URL Shortener writen in pure PHP.
 
 **[WebSite](https://y-link.ml)**
 
+**[API Docs](https://y-link.ml/API_Docs)**
+
 ## Installation
 
 1. Clone the project

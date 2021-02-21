@@ -19,7 +19,7 @@ $validParams = array(
     "method" => array(
         "type" => "string",
         "validLength" => "4...6",
-        "description" => "the method (create, info, custom, edit, help)",
+        "description" => "the method (e.g. create, info, help...)",
     ),
     "link" => array(
         "type" => "url",
@@ -44,7 +44,7 @@ $validParams = array(
 
 $methods = array(
     'create' => array(
-        "description" => "to create new shorten link",
+        "description" => "Create new shorten link",
         "http_method" => "post",
         "paramaters" => array(
             "method" => $validParams['method'],
@@ -53,7 +53,25 @@ $methods = array(
         )
     ),
     'info' => array(
-        "description" => "to get info of shorten link",
+        "description" => "Get info of shorten link",
+        "http_method" => "post",
+        "paramaters" => array(
+            "method" => $validParams['method'],
+            "password" => $validParams['password'],
+            "shorten_link" => $validParams['shorten_link']
+        )
+    ),
+    'stats' => array(
+        "description" => "Get stats of shorten link",
+        "http_method" => "post",
+        "paramaters" => array(
+            "method" => $validParams['method'],
+            "password" => $validParams['password'],
+            "shorten_link" => $validParams['shorten_link']
+        )
+    ),
+    'raw_stats' => array(
+        "description" => "Get raw stats of shorten link",
         "http_method" => "post",
         "paramaters" => array(
             "method" => $validParams['method'],
@@ -62,7 +80,7 @@ $methods = array(
         )
     ),
     'custom' => array(
-        "description" => "to create new custom shorten link",
+        "description" => "Create new custom shorten link",
         "http_method" => "post",
         "paramaters" => array(
             "method" => $validParams['method'],
@@ -82,7 +100,7 @@ $methods = array(
         )
     ),
     'help' => array(
-        "description" => "receive help",
+        "description" => "Receive help",
         "http_method" => "post",
         "paramaters" => array(
             "method" => $validParams['method']
@@ -93,7 +111,7 @@ $methods = array(
 if(!isset($_POST) || count($_POST) == 0 || !isset($methods[$_POST['method']])){
     $res['ok'] = false;
     $res["error"]['code'] = 404;
-    $res["error"]['message'] = 'Method not found. try send post request method=help';
+    $res["error"]['message'] = 'Method not found. try send POST request "method=help"';
     $res["error"]['docs'] = 'https://github.com/YehudaEi/Y-Link';
 }
 else{
@@ -133,6 +151,29 @@ else{
                 $res['ok'] = true;
                 $res['res']['long_link'] = getLongLink($_POST['shorten_link']);
                 $res['res']['count_clicks'] = countClicks($_POST['shorten_link']);
+            }
+            else{
+                $res['ok'] = false;
+                $res["error"]['code'] = 403;
+                $res["error"]['message'] = 'Forbidden';
+            }
+        }
+        elseif($_POST['method'] == "stats"){
+            if(getLinkPass($_POST['shorten_link']) == $_POST['password']){
+                $res['ok'] = true;
+                $res['res']['count_clicks'] = countClicks($_POST['shorten_link']);
+                $res['res']['stats'] = getStatsOfLink($_POST['shorten_link']);
+            }
+            else{
+                $res['ok'] = false;
+                $res["error"]['code'] = 403;
+                $res["error"]['message'] = 'Forbidden';
+            }
+        }
+        elseif($_POST['method'] == "raw_stats"){
+            if(getLinkPass($_POST['shorten_link']) == $_POST['password']){
+                $res['ok'] = true;
+                $res['res']['raw_data'] = getAllClickOfLink($_POST['shorten_link']);
             }
             else{
                 $res['ok'] = false;
