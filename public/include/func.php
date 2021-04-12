@@ -54,7 +54,9 @@ function validLink($link){
         return false;
     if(strpos(parse_url($link, PHP_URL_HOST), "="))
         return false;
-
+    if(parse_url($link, PHP_URL_HOST) == SITE_DOMAIN)
+        return false;
+    
     return true;
 }
 
