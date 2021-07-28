@@ -18,7 +18,7 @@ $res = array();
 $validParams = array(
     "method" => array(
         "type" => "string",
-        "validLength" => "4...6",
+        "valid length" => "4...6",
         "description" => "the method (e.g. create, info, help...)",
     ),
     "link" => array(
@@ -27,19 +27,29 @@ $validParams = array(
     ),
     "password" => array(
         "type" => "string",
-        "validLength" => "4...30",
+        "valid length" => "4...30",
         "description" => "Creator verification",
     ),
     "path" => array(
         "type" => "string",
-        "validLength" => "4...30",
+        "valid length" => "4...30",
         "description" => "shortened link path: " . SITE_URL . "/{path}",
     ),
     "shorten_link" => array(
         "type" => "url",
-        "validLength" => (strlen(SITE_URL) + 4) . "..." . (strlen(SITE_URL) + 30),
+        "valid length" => (strlen(SITE_URL) + 4) . "..." . (strlen(SITE_URL) + 30),
         "description" => SITE_URL . " shortened link",
-    )
+    ),
+    "start_date" => array(
+        "type" => "date",
+        "valid length" => "19",
+        "description" => "start date for stats (in format: yyyy-mm-dd HH:mm:ss)",
+    ),
+    "end_date" => array(
+        "type" => "date",
+        "valid length" => "19",
+        "description" => "end date for stats (in format: yyyy-mm-dd HH:mm:ss)",
+    ),
 );
 
 $methods = array(
@@ -68,6 +78,10 @@ $methods = array(
             "method" => $validParams['method'],
             "password" => $validParams['password'],
             "shorten_link" => $validParams['shorten_link']
+        ),
+        "optional_paramaters" => array(
+            "start_date" => $validParams['start_date'],
+            "end_date" => $validParams['end_date']
         )
     ),
     'raw_stats' => array(
@@ -77,6 +91,10 @@ $methods = array(
             "method" => $validParams['method'],
             "password" => $validParams['password'],
             "shorten_link" => $validParams['shorten_link']
+        ),
+        "optional_paramaters" => array(
+            "start_date" => $validParams['start_date'],
+            "end_date" => $validParams['end_date']
         )
     ),
     'custom' => array(
@@ -108,6 +126,49 @@ $methods = array(
     )
 );
 
+if(isset($_GET['create_readme'])){
+    $i = 1; $j = 1; $k = 1;
+    foreach ($methods as $methodName => $method){
+        echo $i . ". **" . $methodName . "**\n";
+        echo "\t 1. Description: `" . $method['description'] . "`\n";
+        echo "\t 2. HTTP Method: `" . strtoupper($method['http_method']) . "`\n";
+        echo "\t 3. Paramaters: \n";
+        foreach ($method['paramaters'] as $parameterName => $params){
+            echo "\t\t" . $j . ". `" . $parameterName . "`:\n";
+            foreach ($params as $name => $description){
+                echo "\t\t\t" . $k . ". " . $name . ": `" . $description . "`\n";
+                
+                $k++;
+            }
+            
+            $k = 1;
+            $j++;
+        }
+        
+        if(isset($method['optional_paramaters'])){
+            echo "\t 4. Optional Paramaters: \n";
+            $j = 1;
+            foreach ($method['optional_paramaters'] as $parameterName => $params){
+                echo "\t\t" . $j . ". `" . $parameterName . "`:\n";
+                foreach ($params as $name => $description){
+                    echo "\t\t\t" . $k . ". " . $name . ": `" . $description . "`\n";
+                    
+                    $k++;
+                }
+                
+                $k = 1;
+                $j++;
+            }
+        }
+        
+        echo "\n";
+        $j = 1;
+        $i++;
+    }
+    
+    die();
+}
+
 if(!isset($_POST) || count($_POST) == 0 || !isset($methods[$_POST['method']])){
     $res['ok'] = false;
     $res["error"]['code'] = 404;
@@ -125,6 +186,16 @@ else{
         }
 
         if($name != "method" && !call_user_func("valid" . ucfirst($name), $_POST[$name])){
+            $res['ok'] = false;
+            $res["error"]['code'] = 400;
+            $res["error"]['message'] = "Bad Request: \"{$name}\" is invalid";
+            break;
+        }
+    }
+    
+    $optionalParams = $methods[$_POST['method']]['optional_paramaters'];
+    foreach($optionalParams as $name => $tmp){
+        if(isset($_POST[$name]) && !empty($_POST[$name]) && !call_user_func("valid" . ucfirst($name), $_POST[$name])){
             $res['ok'] = false;
             $res["error"]['code'] = 400;
             $res["error"]['message'] = "Bad Request: \"{$name}\" is invalid";
@@ -161,8 +232,8 @@ else{
         elseif($_POST['method'] == "stats"){
             if(getLinkPass($_POST['shorten_link']) == $_POST['password']){
                 $res['ok'] = true;
-                $res['res']['count_clicks'] = countClicks($_POST['shorten_link']);
-                $res['res']['stats'] = getStatsOfLink($_POST['shorten_link']);
+                $res['res']['count_clicks'] = countClicks($_POST['shorten_link'], ($_POST['start_date'] ?? null), ($_POST['end_date'] ?? null));
+                $res['res']['stats'] = getStatsOfLink($_POST['shorten_link'], ($_POST['start_date'] ?? null), ($_POST['end_date'] ?? null));
             }
             else{
                 $res['ok'] = false;
@@ -173,7 +244,7 @@ else{
         elseif($_POST['method'] == "raw_stats"){
             if(getLinkPass($_POST['shorten_link']) == $_POST['password']){
                 $res['ok'] = true;
-                $res['res']['raw_data'] = getAllClickOfLink($_POST['shorten_link']);
+                $res['res']['raw_data'] = getAllClickOfLink($_POST['shorten_link'], ($_POST['start_date'] ?? null), ($_POST['end_date'] ?? null));
             }
             else{
                 $res['ok'] = false;
