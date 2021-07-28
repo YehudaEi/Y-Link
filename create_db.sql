@@ -1,10 +1,13 @@
-CREATE TABLE `mainTable` ( 
-    `id` INT NOT NULL AUTO_INCREMENT , 
-    `path` TEXT NOT NULL , 
-    `link` TEXT NOT NULL , 
-    `password` TEXT NOT NULL , 
-    `deleted` BOOLEAN NOT NULL , 
-PRIMARY KEY (`id`)) ENGINE = InnoDB;
+CREATE TABLE `mainTable` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `path` text NOT NULL,
+  `link` text NOT NULL,
+  `password` text NOT NULL,
+  `ip` text,
+  `create_timestamp` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `deleted` tinyint(1) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE `clicks` (
  `id` int NOT NULL AUTO_INCREMENT,
