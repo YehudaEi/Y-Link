@@ -47,14 +47,14 @@ function linkExistByPath($path){
  * @param string $link the link
  * @return bool link valid or invalid
  */
-function validLink($link){
+function validLink($link, $allowYLink = false){
     if(preg_match("/magnet:\?xt=urn:[a-z0-9]+:[a-z0-9]{32}/i", $link))
         return true;
     if(!(parse_url($link, PHP_URL_SCHEME) && parse_url($link, PHP_URL_HOST)))
         return false;
     if(strpos(parse_url($link, PHP_URL_HOST), "="))
         return false;
-    if(parse_url($link, PHP_URL_HOST) == SITE_DOMAIN)
+    if(parse_url($link, PHP_URL_HOST) == SITE_DOMAIN && !$allowYLink)
         return false;
     
     return true;
@@ -100,7 +100,7 @@ function validPath($path){
  * @return bool shorten link valid or invalid
  */
 function validShorten_link($link){
-    if(!validLink($link))
+    if(!validLink($link, true))
         return false;
 
     $id = trim(str_replace(SITE_URL . "/", "", $link));
@@ -112,6 +112,37 @@ function validShorten_link($link){
     
     return true;
 }
+
+/**
+ * check if start date is valid
+ * 
+ * @param string $date start date
+ * @return bool start date valid or invalid
+ */
+function validStart_date($date){
+    if(strlen($date) != 19)
+        return false;
+    
+    $d = DateTime::createFromFormat('Y-m-d H:i:s', $date);
+    
+    return $d && $d->format('Y-m-d H:i:s') == $date;
+}
+
+/**
+ * check if end date is valid
+ * 
+ * @param string $date end date
+ * @return bool end date valid or invalid
+ */
+function validEnd_date($date){
+    if(strlen($date) != 19)
+        return false;
+    
+    $d = DateTime::createFromFormat('Y-m-d H:i:s', $date);
+    
+    return $d && $d->format('Y-m-d H:i:s') == $date;
+}
+
 
 /**
  * generate random string
@@ -148,8 +179,8 @@ function createLink($link, $password){
         $path = rnd();
     } while(linkExistByPath($path));
 
-    $sql = "INSERT INTO `mainTable` (`id`, `path`, `link`, `password`, `deleted`) VALUES " .
-           "(NULL, '" . $path . "', '" . cleanString($link) . "', '" . cleanString($password) . "', 0);";
+    $sql = "INSERT INTO `mainTable` (`id`, `path`, `link`, `password`, `ip`, `deleted`) VALUES " .
+           "(NULL, '" . $path . "', '" . cleanString($link) . "', '" . cleanString($password) . "', '" . cleanString(CLIENT_IP) . "', 0);";
     $DBConn->query($sql);
 
     return $path;
@@ -176,16 +207,23 @@ function getLinkPass($link){
  * count click of shorten link
  * 
  * @param string $link shorten link
+ * @param string $startDate start date
+ * @param string $endDate end date
  * @return int num of clicks
  */
-function countClicks($link){
+function countClicks($link, $startDate = null, $endDate = null){
     global $DBConn;
     
     $path = trim(str_replace(SITE_URL . "/", "", $link));
     if(!linkExistByPath($path))
         return false;
 
-    $res = $DBConn->query('SELECT `id` FROM `clicks` WHERE `path` = "'.cleanString($path).'";');
+    if(!empty($startDate) && !empty($endDate)){
+        $res = $DBConn->query('SELECT `id` FROM `clicks` WHERE `path` = "'.cleanString($path).'" AND `time` > "'.cleanString($startDate).'" AND `time` < "'.cleanString($endDate).'";');
+    }
+    else{
+        $res = $DBConn->query('SELECT `id` FROM `clicks` WHERE `path` = "'.cleanString($path).'";');
+    }
 
     return $res->num_rows ?? false;
 }
@@ -194,17 +232,24 @@ function countClicks($link){
  * info click of shorten link
  * 
  * @param string $link shorten link
+ * @param string $startDate start date
+ * @param string $endDate end date
  * @return array info of clicks
  */
-function getAllClickOfLink($link){
+function getAllClickOfLink($link, $startDate = null, $endDate = null){
     global $DBConn;
     
     $path = trim(str_replace(SITE_URL . "/", "", $link));
     if(!linkExistByPath($path))
         return false;
 
-    $res = $DBConn->query('SELECT `user_agent`,`language`,`referrer`,`time` FROM `clicks` WHERE `path` = "'.cleanString($path).'";');
-
+    if(!empty($startDate) && !empty($endDate)){
+        $res = $DBConn->query('SELECT `user_agent`,`language`,`referrer`,`time` FROM `clicks` WHERE `path` = "'.cleanString($path).'" AND `time` > "'.cleanString($startDate).'" AND `time` < "'.cleanString($endDate).'";');
+    }
+    else{
+        $res = $DBConn->query('SELECT `user_agent`,`language`,`referrer`,`time` FROM `clicks` WHERE `path` = "'.cleanString($path).'";');
+    }
+    
     return $res->fetch_all(MYSQLI_ASSOC) ?? false;
 }
 
@@ -212,10 +257,12 @@ function getAllClickOfLink($link){
  * get stats of link clicks
  * 
  * @param string $link shorten link
+ * @param string $startDate start date
+ * @param string $endDate end date
  * @return array stats of clicks
  */
-function getStatsOfLink($link){
-    $data = getAllClickOfLink($link);
+function getStatsOfLink($link, $startDate = null, $endDate = null){
+    $data = getAllClickOfLink($link, $startDate, $endDate);
     if($data == false)
         return false;
     
@@ -228,12 +275,14 @@ function getStatsOfLink($link){
         "safari" => 0,
         "samsung internet" => 0,
         "miui browser" => 0,
+        "bot" => 0,
         "other" => 0
     );
     $devices = array(
         "desktop" => 0,
         "tablet" => 0,
         "mobile" => 0,
+        "bot" => 0,
         "other" => 0
     );
     $oss = array(
@@ -243,6 +292,7 @@ function getStatsOfLink($link){
         "linux" => 0,
         "macos" => 0,
         "kaios" => 0,
+        "bot" => 0,
         "other" => 0
     );
     $referrals = array(
@@ -261,6 +311,12 @@ function getStatsOfLink($link){
         if ($browser == "internet explorer") $browser = "IE";
         if ($os == "ubuntu") $os = "linux";
         if ($os == "os x") $os = "macos";
+        
+        if(strpos(strtolower($click['user_agent']), "bot") !== false || strpos(strtolower($click['user_agent']), "whatsapp") !== false){
+            $browser = "bot";
+            $device = "bot";
+            $os = "bot";
+        }
 
         if(isset($browsers[$browser]))
             $browsers[$browser]++;
@@ -309,7 +365,7 @@ function getLongLink($link){
     if(!linkExistByPath($path))
         return false;
 
-    $res = $DBConn->query('SELECT `path`,`link` FROM `mainTable` WHERE `path` = "'.cleanString($path).'";');
+    $res = $DBConn->query('SELECT `path`,`link` FROM `mainTable` WHERE `path` = "'.cleanString($path).'" AND `deleted` != 1;');
     while($row = $res->fetch_assoc()){
         if($row['path'] == $path)
             return $row['link'];
@@ -329,8 +385,8 @@ function getLongLink($link){
 function createCustomLink($link, $path, $password){
     global $DBConn;
 
-    $sql = "INSERT INTO `mainTable` (`id`, `path`, `link`, `password`, `deleted`) VALUES " .
-           "(NULL, '" . cleanString($path) . "', '" . cleanString($link) . "', '" . cleanString($password) . "', 0);";
+    $sql = "INSERT INTO `mainTable` (`id`, `path`, `link`, `password`, `ip`, `deleted`) VALUES " .
+           "(NULL, '" . cleanString($path) . "', '" . cleanString($link) . "', '" . cleanString($password) . "', '" . cleanString(CLIENT_IP) . "', 0);";
     $DBConn->query($sql);
 
     return $path;
@@ -364,7 +420,7 @@ function addVisitor($path){
 
     if(!linkExistByPath($path))
         return;
-
+    
     $stmt = $DBConn->prepare("INSERT INTO `clicks` (id, path, ip, user_agent, language, referrer, time) VALUES (NULL, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)");
     $stmt->bind_param("sssss", $path, $ip, $agent, $lang, $referrer);
     $path = cleanString($path);
@@ -372,7 +428,15 @@ function addVisitor($path){
     $agent = cleanString($_SERVER['HTTP_USER_AGENT'] ?? "");
     $lang = cleanString($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? "");
     $referrer = cleanString($_SERVER["HTTP_REFERER"] ?? "");
-    $stmt->execute();
+    
+    if(!isset($_SESSION['links']) || !is_array($_SESSION['links'])){
+        $_SESSION['links'] = array();
+    }
+    
+    if(!in_array($path . "~~~" . $_SERVER["HTTP_REFERER"], $_SESSION['links'])){
+        $_SESSION['links'][] = $path . "~~~" . $_SERVER["HTTP_REFERER"];
+        $stmt->execute();
+    }
     
     $stmt->close();
 }
