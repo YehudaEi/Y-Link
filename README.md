@@ -6,6 +6,9 @@ URL Shortener writen in pure PHP.
 
 **[API Docs](https://y-link.ml/API_Docs)**
 
+## 100$ Free For 60 days ⬇
+[![DigitalOcean Referral Badge](https://web-platforms.sfo2.digitaloceanspaces.com/WWW/Badge%203.svg)](https://www.digitalocean.com/?refcode=6e91761dbbfce)
+
 ## Installation
 
 1. Clone the project
