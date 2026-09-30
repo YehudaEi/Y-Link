@@ -17,20 +17,25 @@ header("Cache-Control: no-cache");
 header("Content-Type: text/html; charset=utf-8");
 header("Cache-Control: no-store");
 
-$uri = str_replace(parse_url(SITE_URL)['path'] ?? "", "", $_SERVER['REQUEST_URI']);
+$requestPath = parse_url($_SERVER['REQUEST_URI'] ?? "/", PHP_URL_PATH) ?: "/";
+$sitePath = parse_url(SITE_URL, PHP_URL_PATH) ?? "";
+if($sitePath !== "" && strpos($requestPath, $sitePath) === 0)
+    $requestPath = substr($requestPath, strlen($sitePath));
 
-$uri = urldecode(substr($uri, 1));
-
-if(substr($_SERVER['REQUEST_URI'], -1) == "+"){
+$getData = false;
+if(substr($requestPath, -1) == "+"){
     $getData = true;
-    $uri = substr($uri, 0, -1);
+    $requestPath = substr($requestPath, 0, -1);
 }
 
-if(isset($uri) && preg_match(PATH_REGEX, $uri)){
+$uri = urldecode(substr($requestPath, 1));
+
+$longLink = false;
+if(preg_match(PATH_REGEX, $uri)){
     $longLink = getLongLink($uri);
 }
-if(isset($longLink) && !empty($longLink)){        
-    if(isset($getData) && $getData){
+if(!empty($longLink)){
+    if($getData){
         include('stats.php');
     }
     else{

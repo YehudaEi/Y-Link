@@ -6,8 +6,8 @@
  * @package    Y-Link
  * @copyright  Copyright (c) 2018-2020 Yehuda Eisenberg (https://YehudaE.net)
  * @author     Yehuda Eisenberg
- * @license    MIT
- * @version    AGPL-3.0
+ * @license    AGPL-3.0
+ * @version    2.0
  * @link       https://github.com/YehudaEi/Y-Link
  */
 
@@ -169,152 +169,132 @@ if(isset($_GET['create_readme'])){
     die();
 }
 
-if(!isset($_POST) || count($_POST) == 0 || !isset($methods[$_POST['method']])){
-    $res['ok'] = false;
-    $res["error"]['code'] = 404;
-    $res["error"]['message'] = 'Method not found. try send POST request "method=help"';
+/**
+ * build error response
+ * 
+ * @param int $code error code
+ * @param string $message error message
+ * @return array the response
+ */
+function errorResponse($code, $message){
+    return array(
+        "ok" => false,
+        "error" => array(
+            "code" => $code,
+            "message" => $message
+        )
+    );
+}
+
+$method = (isset($_POST['method']) && is_string($_POST['method'])) ? $_POST['method'] : null;
+
+if($method === null || !isset($methods[$method])){
+    $res = errorResponse(404, 'Method not found. try send POST request "method=help"');
     $res["error"]['docs'] = 'https://github.com/YehudaEi/Y-Link';
 }
 else{
-    $params = $methods[$_POST['method']]['paramaters'];
-    foreach($params as $name => $tmp){
-        if(!isset($_POST[$name]) || empty($_POST[$name])){
-            $res['ok'] = false;
-            $res["error"]['code'] = 400;
-            $res["error"]['message'] = "Bad Request: \"{$name}\" is empty";
+    foreach($methods[$method]['paramaters'] as $name => $tmp){
+        if(!isset($_POST[$name]) || !is_string($_POST[$name]) || trim($_POST[$name]) === ""){
+            $res = errorResponse(400, "Bad Request: \"{$name}\" is empty");
             break;
         }
 
         if($name != "method" && !call_user_func("valid" . ucfirst($name), $_POST[$name])){
-            $res['ok'] = false;
-            $res["error"]['code'] = 400;
-            $res["error"]['message'] = "Bad Request: \"{$name}\" is invalid";
+            $res = errorResponse(400, "Bad Request: \"{$name}\" is invalid");
             break;
         }
     }
     
-    $optionalParams = $methods[$_POST['method']]['optional_paramaters'];
-    foreach($optionalParams as $name => $tmp){
-        if(isset($_POST[$name]) && !empty($_POST[$name]) && !call_user_func("valid" . ucfirst($name), $_POST[$name])){
-            $res['ok'] = false;
-            $res["error"]['code'] = 400;
-            $res["error"]['message'] = "Bad Request: \"{$name}\" is invalid";
-            break;
+    if(count($res) == 0){
+        foreach(($methods[$method]['optional_paramaters'] ?? array()) as $name => $tmp){
+            if(isset($_POST[$name]) && !empty($_POST[$name]) && !call_user_func("valid" . ucfirst($name), $_POST[$name])){
+                $res = errorResponse(400, "Bad Request: \"{$name}\" is invalid");
+                break;
+            }
         }
     }
 
+    if(count($res) == 0 && isset($methods[$method]['paramaters']['shorten_link']) && !checkLinkPassword($_POST['shorten_link'], $_POST['password'])){
+        $res = errorResponse(403, 'Forbidden');
+    }
+
     if(count($res) == 0){
-        if($_POST['method'] == "create"){
-            $path = createLink($_POST['link'], $_POST['password']);
-            if(is_string($path)){
-                $res['ok'] = true;
-                $res['res']['password'] = $_POST['password'];
-                $res['res']['link'] = SITE_URL . '/' . $path;
-            }
-            else{
-                $res['ok'] = false;
-                $res["error"]['code'] = 500;
-                $res["error"]['message'] = 'Server Error! description: ' . $path;
-            }
-        }
-        elseif($_POST['method'] == "info"){
-            if(getLinkPass($_POST['shorten_link']) == $_POST['password']){
+        $startDate = $_POST['start_date'] ?? null;
+        $endDate = $_POST['end_date'] ?? null;
+
+        switch($method){
+            case "create":
+                $path = createLink($_POST['link'], $_POST['password']);
+                if($path !== false){
+                    $res['ok'] = true;
+                    $res['res']['password'] = $_POST['password'];
+                    $res['res']['link'] = SITE_URL . '/' . $path;
+                }
+                else{
+                    $res = errorResponse(500, 'Server Error! please try again later');
+                }
+                break;
+
+            case "info":
                 $res['ok'] = true;
                 $res['res']['long_link'] = getLongLink($_POST['shorten_link']);
                 $res['res']['count_clicks'] = countClicks($_POST['shorten_link']);
-            }
-            else{
-                $res['ok'] = false;
-                $res["error"]['code'] = 403;
-                $res["error"]['message'] = 'Forbidden';
-            }
-        }
-        elseif($_POST['method'] == "stats"){
-            if(getLinkPass($_POST['shorten_link']) == $_POST['password']){
+                break;
+
+            case "stats":
                 $res['ok'] = true;
-                $res['res']['count_clicks'] = countClicks($_POST['shorten_link'], ($_POST['start_date'] ?? null), ($_POST['end_date'] ?? null));
-                $res['res']['stats'] = getStatsOfLink($_POST['shorten_link'], ($_POST['start_date'] ?? null), ($_POST['end_date'] ?? null));
-            }
-            else{
-                $res['ok'] = false;
-                $res["error"]['code'] = 403;
-                $res["error"]['message'] = 'Forbidden';
-            }
-        }
-        elseif($_POST['method'] == "raw_stats"){
-            if(getLinkPass($_POST['shorten_link']) == $_POST['password']){
+                $res['res']['count_clicks'] = countClicks($_POST['shorten_link'], $startDate, $endDate);
+                $res['res']['stats'] = getStatsOfLink($_POST['shorten_link'], $startDate, $endDate);
+                break;
+
+            case "raw_stats":
                 $res['ok'] = true;
-                $res['res']['raw_data'] = getAllClickOfLink($_POST['shorten_link'], ($_POST['start_date'] ?? null), ($_POST['end_date'] ?? null));
-            }
-            else{
-                $res['ok'] = false;
-                $res["error"]['code'] = 403;
-                $res["error"]['message'] = 'Forbidden';
-            }
-        }
-        elseif($_POST['method'] == "custom"){
-            if(!linkExistByPath($_POST['path']) && $_POST['path'] != "mainTable"){
-                $success = createCustomLink($_POST['link'], $_POST['path'], $_POST['password']);
-                if($success == true){
+                $res['res']['raw_data'] = getAllClickOfLink($_POST['shorten_link'], $startDate, $endDate);
+                break;
+
+            case "custom":
+                $path = trim($_POST['path']);
+                if(linkExistByPath($path) || reservedPath($path)){
+                    $res = errorResponse(400, 'Path already exist');
+                }
+                elseif(createCustomLink($_POST['link'], $path, $_POST['password']) !== false){
                     $res['ok'] = true;
                     $res['res']['password'] = $_POST['password'];
-                    $res['res']['link'] = SITE_URL . '/' . $_POST['path'];
+                    $res['res']['link'] = SITE_URL . '/' . $path;
                 }
                 else{
-                    $res['ok'] = false;
-                    $res["error"]['code'] = 500;
-                    $res["error"]['message'] = 'Server Error! description: ' . $success;
+                    $res = errorResponse(500, 'Server Error! please try again later');
                 }
-            }
-            else{
-                $res['ok'] = false;
-                $res["error"]['code'] = 400;
-                $res["error"]['message'] = 'Path already exist';
-            }
-        }
-        elseif($_POST['method'] == "edit"){
-            if(getLinkPass($_POST['shorten_link']) == $_POST['password']){
-                $success = editLongLink($_POST['link'], $_POST['shorten_link']);
-                if($success == true){
+                break;
+
+            case "edit":
+                if(editLongLink($_POST['link'], $_POST['shorten_link'])){
                     $res['ok'] = true;
                     $res['res']['password'] = $_POST['password'];
                     $res['res']['link'] = $_POST['shorten_link'];
                 }
                 else{
-                    $res['ok'] = false;
-                    $res["error"]['code'] = 500;
-                    $res["error"]['message'] = 'Server Error! description: ' . $success;
+                    $res = errorResponse(500, 'Server Error! please try again later');
                 }
-            }
-            else{
-                $res['ok'] = false;
-                $res["error"]['code'] = 403;
-                $res["error"]['message'] = 'Forbidden';
-            }
-        }
-        elseif($_POST['method'] == "help"){
-            $res['owner']['name'] = "Yehuda Eisenberg";
-            $res['owner']['mail'] = "yehuda.telegram@gmail.com";
-            $res['owner']['support'] = "links@".SITE_DOMAIN;
-            $res['owner']['GitHub'] = "https://github.com/YehudaEi/Y-Link";
-            $res['owner']['Telegram'] = "@YehudaEisenberg";
-            
-            foreach($methods as $name => $method){
-                $res['valid_methods'][$name] = $method;
-            }
+                break;
 
-            foreach($validParams as $name => $param){
-                $res['valid_paramaters'][$name] = $param;
-            }
-        }
-        else {
-            $res['ok'] = false;
-            $res["error"]['code'] = 500;
-            $res["error"]['message'] = 'Server Error! please try again later';
+            case "help":
+                $res['ok'] = true;
+                $res['owner']['name'] = "Yehuda Eisenberg";
+                $res['owner']['mail'] = "yehuda.telegram@gmail.com";
+                $res['owner']['support'] = "links@".SITE_DOMAIN;
+                $res['owner']['GitHub'] = "https://github.com/YehudaEi/Y-Link";
+                $res['owner']['Telegram'] = "@YehudaEisenberg";
+                $res['valid_methods'] = $methods;
+                $res['valid_paramaters'] = $validParams;
+                break;
+
+            default:
+                $res = errorResponse(500, 'Server Error! please try again later');
         }
     }
 }
 
-echo json_encode($res, true);
+echo json_encode($res);
 
 $DBConn->close();

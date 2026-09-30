@@ -14,9 +14,9 @@
 require_once(__DIR__ . "/YLinkClient.php");
 
 if(isset($_POST['url'])){    
-    $client = new YLink((isset($_POST['privateMode']) && $_POST['privateMode'] == "on") ? "HIDDEN_".uniqid() : "DefaultPasswords");
+    $client = new YLink((isset($_POST['privateMode']) && $_POST['privateMode'] == "on") ? "HIDDEN_" . bin2hex(random_bytes(8)) : "DefaultPasswords");
     try{
-        $res = $client->CreateLink($_POST['url'], empty($_POST['path']) ? null : $_POST['path']);
+        $res = $client->CreateLink((string)$_POST['url'], empty($_POST['path']) ? null : (string)$_POST['path']);
     }
     catch(Exception $e){
         $res['ok'] = false;
@@ -74,10 +74,10 @@ if(isset($_POST['url'])){
 <?php
 
 if(isset($res)){
-    if($res['ok']){
+    if(!empty($res['ok'])){
 ?>
                             <div class="alert alert-success" role="alert">
-                                Your shortened link is <code id="shortenedLink"><?php echo $res['res']['link']; ?></code><br><a href="#" data-clipboard-target="#shortenedLink" class="alert-link">Click here to copy</a>.
+                                Your shortened link is <code id="shortenedLink"><?php echo htmlspecialchars($res['res']['link']); ?></code><br><a href="#" data-clipboard-target="#shortenedLink" class="alert-link">Click here to copy</a>.
                             </div>
                             <script>new ClipboardJS('.alert-link');</script>
 <?php
@@ -85,7 +85,7 @@ if(isset($res)){
     else{
 ?>
                             <div class="alert alert-danger" role="alert">
-                                You have error: <code><?php echo $res['error']['message']; ?></code>
+                                You have error: <code><?php echo htmlspecialchars($res['error']['message'] ?? "Unknown error"); ?></code>
                             </div>
 <?php
     }
