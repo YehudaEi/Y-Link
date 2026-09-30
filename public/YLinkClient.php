@@ -53,13 +53,15 @@ class Ylink{
     	curl_setopt($ch ,CURLOPT_POSTFIELDS, $data);
        
         $res = curl_exec($ch);
-        if(empty(curl_error($ch))){
-            curl_close($ch);
-            $res = json_decode($res, true);
-
-            return $res;
-        }
+        $error = curl_error($ch);
         curl_close($ch);
+
+        if(empty($error)){
+            $res = json_decode($res, true);
+            if(is_array($res))
+                return $res;
+        }
+
         return array("ok" => false, "error" => array("code" => 500, "message" => "Unknown error"));
     }
 
@@ -70,11 +72,16 @@ class Ylink{
      * @return bool link valid or invalid
      */
     static function validLink($link){
-        if(preg_match("/magnet:\?xt=urn:[a-z0-9]+:[a-z0-9]{32}/i", $link))
+        if(preg_match("/^magnet:\?xt=urn:[a-z0-9]+:[a-z0-9]{32}/i", $link))
             return true;
-        if(!(parse_url($link, PHP_URL_SCHEME) && parse_url($link, PHP_URL_HOST)))
+
+        $scheme = parse_url($link, PHP_URL_SCHEME);
+        $host = parse_url($link, PHP_URL_HOST);
+        if(!($scheme && $host))
             return false;
-        if(strpos(parse_url($link, PHP_URL_HOST), "="))
+        if(in_array(strtolower($scheme), array("javascript", "data", "vbscript", "file"), true))
+            return false;
+        if(strpos($host, "=") !== false)
             return false;
 
         return true;

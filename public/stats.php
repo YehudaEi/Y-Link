@@ -13,12 +13,26 @@
 
 if(!defined('SITE_DOMAIN')){
     http_response_code(404);
-    include 'apache-errors/404.html';
+    include 'error-pages/404.html';
     die();
 }
 
-if((isset($_GET['pass']) && getLinkPass(SITE_URL . "/" . $uri) != $_GET['pass']) || (!isset($_GET['pass']) && getLinkPass(SITE_URL . "/" . $uri) != DEFUALT_PASSWORD))
+$statsAllowed = checkLinkPassword($uri, (isset($_GET['pass']) && is_string($_GET['pass'])) ? $_GET['pass'] : DEFUALT_PASSWORD);
+
+if($statsAllowed)
+    addVisitor($uri);
+else
     http_response_code(403);
+
+/**
+ * encode value for safe use inside inline script
+ * 
+ * @param mixed $value the value
+ * @return string json
+ */
+function jsValue($value){
+    return json_encode($value, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE);
+}
 
 ?>
 <html lang="he">
@@ -69,8 +83,7 @@ if((isset($_GET['pass']) && getLinkPass(SITE_URL . "/" . $uri) != $_GET['pass'])
             			<div class="card-body">
             				<h5 class="card-title text-center">Link stats (beta)</h5>
 <?php
-    if((isset($_GET['pass']) && getLinkPass(SITE_URL . "/" . $uri) != $_GET['pass']) || 
-        (!isset($_GET['pass']) && getLinkPass(SITE_URL . "/" . $uri) != DEFUALT_PASSWORD)){     
+    if(!$statsAllowed){
 ?>
                             <div class="alert alert-danger text-center" role="alert">
                                 This is private link
@@ -78,7 +91,6 @@ if((isset($_GET['pass']) && getLinkPass(SITE_URL . "/" . $uri) != $_GET['pass'])
 <?php
     }
     else {
-        addVisitor($uri);
 ?>
                             <div class="row">
                                 <div class="col-sm-3"><strong class="text-center">Short link:</strong></div><div class="col-sm-9"><a href="<?php echo SITE_URL . "/" . htmlspecialchars($uri);?>" rel="noreferrer nofollow"><?php echo SITE_URL . "/" . htmlspecialchars($uri);?></a></div>
@@ -87,7 +99,7 @@ if((isset($_GET['pass']) && getLinkPass(SITE_URL . "/" . $uri) != $_GET['pass'])
                                 <div class="col-sm-3"><strong class="text-center">Long link:</strong></div><div class="col-sm-9"><a href="<?php echo htmlspecialchars($longLink);?>" rel="noreferrer nofollow"><?php echo htmlspecialchars($longLink);?></a></div>
                             </div>
                             <div class="row">
-                                <div class="col-sm-3"><strong class="text-center">Sum of clicks:</strong></div><div class="col-sm-9"><?php echo countClicks(SITE_URL . "/" . $uri); ?></div>
+                                <div class="col-sm-3"><strong class="text-center">Sum of clicks:</strong></div><div class="col-sm-9"><?php echo (int)countClicks($uri); ?></div>
                             </div>
                             <br>
                             <div class="row">
@@ -99,18 +111,17 @@ if((isset($_GET['pass']) && getLinkPass(SITE_URL . "/" . $uri) != $_GET['pass'])
                             <script>
                                 var backgroundColors = ['rgba(75, 192, 192, 0.2)','rgba(255, 99, 132, 0.2)','rgba(54, 162, 235, 0.2)','rgba(255, 206, 86, 0.2)','rgba(153, 102, 255, 0.2)','rgba(255, 159, 64, 0.2)','rgba(255, 99, 132, 0.2)','rgba(54, 162, 235, 0.2)','rgba(255, 206, 86, 0.2)','rgba(75, 192, 192, 0.2)','rgba(153, 102, 255, 0.2)','rgba(255, 159, 64, 0.2)']
                                 var borderColors = ['rgba(75, 192, 192, 1)','rgba(255,99,132,1)','rgba(54, 162, 235, 1)','rgba(255, 206, 86, 1)','rgba(153, 102, 255, 1)','rgba(255, 159, 64, 1)','rgba(255,99,132,1)','rgba(54, 162, 235, 1)','rgba(255, 206, 86, 1)','rgba(75, 192, 192, 1)','rgba(153, 102, 255, 1)','rgba(255, 159, 64, 1)']
-                            <?php foreach (getStatsOfLink(SITE_URL . "/" . $uri) as $tableName => $tableData){ ?>
+                            <?php foreach ((getStatsOfLink($uri) ?: array()) as $tableName => $tableData){ ?>
 
-                                /* <?php echo $tableName; ?> */
-                                var ctx = document.getElementById("<?php echo $tableName; ?>");
+                                var ctx = document.getElementById(<?php echo jsValue($tableName); ?>);
                                 var myChart = new Chart(ctx, {
-                                    type: '<?php echo (($tableName == "referral") ? 'pie' : 'bar'); ?>',
+                                    type: <?php echo jsValue(($tableName == "referral") ? 'pie' : 'bar'); ?>,
                                     data: {
-                                        labels: [<?php echo '"' . implode('","', array_keys($tableData)) . '"' ?>],
+                                        labels: <?php echo jsValue(array_map('strval', array_keys($tableData))); ?>,
                                         plugins: [ChartDataLabels],
                                         datasets: [{
-                                            label: '<?php echo $tableName; ?>s',
-                                            data: [<?php echo implode(",", array_values($tableData)) ?>],
+                                            label: <?php echo jsValue($tableName . 's'); ?>,
+                                            data: <?php echo jsValue(array_values($tableData)); ?>,
                                             backgroundColor: backgroundColors,
                                             borderColor: borderColors,
                                             borderWidth: 1
